@@ -56,24 +56,79 @@ export default function ResellerDevelopers() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser();
-      const orgId = (data.user?.user_metadata as any)?.organization_id;
+      try {
+        const { data, error: authError } = await supabase.auth.getUser();
 
-      if (!orgId) {
-        navigate("/reseller-login", { replace: true });
-        return;
-      }
+        if (authError || !data.user) {
+          setLoading(false);
+          openDialog({
+            type: "warning",
+            title: "🔒 Anmeldung erforderlich",
+            message: "Bitte melde dich als Reseller an!",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/reseller-login", { replace: true }), 1500);
+          return;
+        }
 
-      // Get reseller_id
-      const { data: resellerData } = await supabase
-        .from("resellers")
-        .select("id")
-        .eq("organization_id", orgId)
-        .single();
+        const orgId = (data.user?.user_metadata as any)?.organization_id;
+        const userRole = (data.user?.user_metadata as any)?.role;
 
-      if (resellerData) {
+        // Check if user is actually a reseller
+        if (userRole === "developer") {
+          setLoading(false);
+          openDialog({
+            type: "error",
+            title: "❌ Zugriff verweigert",
+            message: "Du bist als Developer eingeloggt. Diese Seite ist nur für Reseller!",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/developer-dashboard", { replace: true }), 2000);
+          return;
+        }
+
+        if (!orgId) {
+          setLoading(false);
+          openDialog({
+            type: "error",
+            title: "❌ Organisation fehlt",
+            message: "Bitte melde dich erneut an.",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/reseller-login", { replace: true }), 1500);
+          return;
+        }
+
+        // Get reseller_id
+        const { data: resellerData, error: resellerError } = await supabase
+          .from("resellers")
+          .select("id")
+          .eq("organization_id", orgId)
+          .maybeSingle();
+
+        if (resellerError || !resellerData) {
+          setLoading(false);
+          openDialog({
+            type: "error",
+            title: "❌ Reseller nicht gefunden",
+            message: "Dein Account ist nicht als Reseller registriert.",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/reseller-login", { replace: true }), 1500);
+          return;
+        }
+
         setResellerId(resellerData.id);
         await loadDevelopers(resellerData.id);
+      } catch (err) {
+        setLoading(false);
+        console.error("Init error:", err);
+        openDialog({
+          type: "error",
+          title: "❌ Fehler",
+          message: "Ein Fehler ist aufgetreten beim Laden der Daten.",
+          closeButton: "OK",
+        });
       }
     }
     init();
