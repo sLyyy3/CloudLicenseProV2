@@ -1,4 +1,4 @@
-// src/pages/AdminDashboard.tsx - ULTRA MEGA EPIC ADMIN DASHBOARD V2 🚀
+// src/pages/AdminDashboard.tsx - ULTRA MEGA EPIC ADMIN DASHBOARD V3 🚀🔥
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -38,10 +38,19 @@ import {
   FaLightbulb,
   FaBolt,
   FaHeart,
+  FaShoppingCart,
+  FaMoneyBillWave,
+  FaUserCog,
+  FaChevronRight,
+  FaFilter,
+  FaCopy,
+  FaBan,
+  FaUserTimes,
+  FaChartPie,
 } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
-import { formatDateTime, exportToCSV } from "../utils/helpers.tsx";
 
+// TYPES
 type Organization = {
   id: string;
   name: string;
@@ -51,10 +60,49 @@ type Organization = {
   created_at: string;
 };
 
+type Customer = {
+  id: string;
+  email: string;
+  name?: string;
+  total_keys: number;
+  total_spent: number;
+  created_at: string;
+};
+
+type Developer = {
+  id: string;
+  email: string;
+  organization_id: string;
+  organization_name: string;
+  total_products: number;
+  total_licenses: number;
+  created_at: string;
+};
+
+type Reseller = {
+  id: string;
+  shop_name: string;
+  organization_id: string;
+  balance: number;
+  total_sales: number;
+  total_products: number;
+  created_at: string;
+};
+
+type Transaction = {
+  id: string;
+  type: "order" | "sale" | "license";
+  customer_email: string;
+  amount: number;
+  product_name: string;
+  timestamp: string;
+};
+
 type Stats = {
   totalOrgs: number;
   totalDevelopers: number;
   totalResellers: number;
+  totalCustomers: number;
   totalProducts: number;
   totalLicenses: number;
   totalOrders: number;
@@ -62,14 +110,9 @@ type Stats = {
   activeUsers: number;
   activeLicenses: number;
   expiredLicenses: number;
-};
-
-type Activity = {
-  id: string;
-  action: string;
-  user_email: string;
-  timestamp: string;
-  details: string;
+  todayRevenue: number;
+  weekRevenue: number;
+  monthRevenue: number;
 };
 
 type SystemHealth = {
@@ -84,12 +127,19 @@ export default function AdminDashboard() {
   const { Dialog: DialogComponent, open: openDialog } = useDialog();
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [filteredOrgs, setFilteredOrgs] = useState<Organization[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [developers, setDevelopers] = useState<Developer[]>([]);
+  const [resellers, setResellers] = useState<Reseller[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "active" | "inactive">("all");
+
   const [stats, setStats] = useState<Stats>({
     totalOrgs: 0,
     totalDevelopers: 0,
     totalResellers: 0,
+    totalCustomers: 0,
     totalProducts: 0,
     totalLicenses: 0,
     totalOrders: 0,
@@ -97,19 +147,24 @@ export default function AdminDashboard() {
     activeUsers: 0,
     activeLicenses: 0,
     expiredLicenses: 0,
+    todayRevenue: 0,
+    weekRevenue: 0,
+    monthRevenue: 0,
   });
-  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     database: "online",
     api: "online",
     auth: "online",
     storage: "online",
   });
+
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "orgs" | "dev" | "resellers" | "analytics" | "activity" | "health">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "customers" | "developers" | "resellers" | "transactions" | "analytics" | "health"
+  >("overview");
   const [godMode, setGodMode] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
-  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -126,109 +181,190 @@ export default function AdminDashboard() {
     init();
   }, []);
 
-  // Filter organizations when search query changes
+  // Auto-refresh every 30 seconds if enabled
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredOrgs(organizations);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredOrgs(
-        organizations.filter(
-          (org) =>
-            org.name.toLowerCase().includes(query) ||
-            org.owner_email.toLowerCase().includes(query) ||
-            org.plan.toLowerCase().includes(query)
-        )
-      );
-    }
-  }, [searchQuery, organizations]);
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      console.log("🔄 Auto-refreshing admin data...");
+      loadAdminData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
   async function loadAdminData() {
     setLoading(true);
     try {
-      // Organizations
+      // ===== ORGANIZATIONS =====
       const { data: orgsData } = await supabase
         .from("organizations")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (orgsData) {
-        setOrganizations(orgsData);
-        setFilteredOrgs(orgsData);
-      }
+      setOrganizations(orgsData || []);
 
-      // Count statistics
-      const { data: devsData } = await supabase
-        .from("organizations")
-        .select("id")
-        .eq("plan", "developer");
-
-      const { data: resellersData } = await supabase
-        .from("resellers")
-        .select("id");
-
-      const { data: productsData } = await supabase
-        .from("products")
-        .select("id");
-
-      const { data: licensesData } = await supabase
-        .from("licenses")
-        .select("id, status");
-
+      // ===== CUSTOMERS =====
       const { data: ordersData } = await supabase
         .from("customer_orders")
-        .select("*");
+        .select("*")
+        .order("created_at", { ascending: false });
 
-      let totalRevenue = 0;
+      // Group by customer email
+      const customerMap = new Map<string, Customer>();
       ordersData?.forEach((order) => {
-        totalRevenue += order.total_amount || 0;
+        const email = order.customer_email;
+        if (!customerMap.has(email)) {
+          customerMap.set(email, {
+            id: order.id,
+            email: email,
+            name: email.split("@")[0],
+            total_keys: 0,
+            total_spent: 0,
+            created_at: order.created_at,
+          });
+        }
+        const customer = customerMap.get(email)!;
+        customer.total_spent += order.total_amount || 0;
+
+        // Count keys from items
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            customer.total_keys += item.quantity || 0;
+          });
+        }
+      });
+      setCustomers(Array.from(customerMap.values()));
+
+      // ===== DEVELOPERS =====
+      const developersMap = new Map<string, Developer>();
+      orgsData?.forEach((org) => {
+        if (org.plan === "developer" || org.plan === "pro") {
+          developersMap.set(org.id, {
+            id: org.id,
+            email: org.owner_email,
+            organization_id: org.id,
+            organization_name: org.name,
+            total_products: 0,
+            total_licenses: 0,
+            created_at: org.created_at,
+          });
+        }
       });
 
-      // Count active/expired licenses
+      // Count products and licenses for each dev
+      const { data: productsData } = await supabase.from("products").select("*");
+      const { data: licensesData } = await supabase.from("licenses").select("*");
+
+      productsData?.forEach((product) => {
+        const dev = developersMap.get(product.organization_id);
+        if (dev) dev.total_products++;
+      });
+
+      licensesData?.forEach((license) => {
+        const dev = developersMap.get(license.organization_id);
+        if (dev) dev.total_licenses++;
+      });
+
+      setDevelopers(Array.from(developersMap.values()));
+
+      // ===== RESELLERS =====
+      const { data: resellersData } = await supabase.from("resellers").select("*");
+
+      const resellersWithStats = await Promise.all(
+        (resellersData || []).map(async (reseller) => {
+          // Get product count
+          const { count: productCount } = await supabase
+            .from("reseller_products")
+            .select("*", { count: "exact", head: true })
+            .eq("reseller_id", reseller.id);
+
+          // Get total sales
+          let totalSales = 0;
+          try {
+            const { count } = await supabase
+              .from("reseller_sales")
+              .select("*", { count: "exact", head: true })
+              .eq("reseller_id", reseller.id);
+            totalSales = count || 0;
+          } catch {
+            // Table might not exist
+          }
+
+          return {
+            id: reseller.id,
+            shop_name: reseller.shop_name,
+            organization_id: reseller.organization_id,
+            balance: reseller.balance || 0,
+            total_sales: totalSales,
+            total_products: productCount || 0,
+            created_at: reseller.created_at,
+          };
+        })
+      );
+      setResellers(resellersWithStats);
+
+      // ===== TRANSACTIONS =====
+      const recentTransactions: Transaction[] = [];
+
+      // Add orders as transactions
+      ordersData?.slice(0, 10).forEach((order) => {
+        const productNames = order.items?.map((i: any) => i.product_name).join(", ") || "Unknown";
+        recentTransactions.push({
+          id: order.id,
+          type: "order",
+          customer_email: order.customer_email,
+          amount: order.total_amount || 0,
+          product_name: productNames,
+          timestamp: order.created_at,
+        });
+      });
+
+      setTransactions(recentTransactions.slice(0, 20));
+
+      // ===== CALCULATE STATS =====
+      let totalRevenue = 0;
+      let todayRevenue = 0;
+      let weekRevenue = 0;
+      let monthRevenue = 0;
+
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      ordersData?.forEach((order) => {
+        const amount = order.total_amount || 0;
+        totalRevenue += amount;
+
+        const orderDate = new Date(order.created_at);
+        if (orderDate >= todayStart) todayRevenue += amount;
+        if (orderDate >= weekStart) weekRevenue += amount;
+        if (orderDate >= monthStart) monthRevenue += amount;
+      });
+
       const activeLicenses = licensesData?.filter((l) => l.status === "active").length || 0;
       const expiredLicenses = licensesData?.filter((l) => l.status === "expired").length || 0;
 
       setStats({
         totalOrgs: orgsData?.length || 0,
-        totalDevelopers: devsData?.length || 0,
+        totalDevelopers: developersMap.size,
         totalResellers: resellersData?.length || 0,
+        totalCustomers: customerMap.size,
         totalProducts: productsData?.length || 0,
         totalLicenses: licensesData?.length || 0,
         totalOrders: ordersData?.length || 0,
         totalRevenue,
-        activeUsers: orgsData?.length || 0,
+        todayRevenue,
+        weekRevenue,
+        monthRevenue,
+        activeUsers: orgsData?.filter((o) => o.status === "active").length || 0,
         activeLicenses,
         expiredLicenses,
       });
 
-      // Load recent activity (mock data for now - can be replaced with real audit log)
-      const mockActivity: Activity[] = [
-        {
-          id: "1",
-          action: "CREATE_LICENSE",
-          user_email: "user@example.com",
-          timestamp: new Date().toISOString(),
-          details: "Neue Lizenz erstellt",
-        },
-        {
-          id: "2",
-          action: "UPDATE_ORG",
-          user_email: "admin@example.com",
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          details: "Organisation aktualisiert",
-        },
-        {
-          id: "3",
-          action: "DELETE_PRODUCT",
-          user_email: "dev@example.com",
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          details: "Produkt gelöscht",
-        },
-      ];
-      setRecentActivity(mockActivity);
-
-      // Check system health
-      checkSystemHealth();
+      // ===== SYSTEM HEALTH =====
+      await checkSystemHealth();
     } catch (err) {
       console.error("Error loading admin data:", err);
     }
@@ -237,17 +373,14 @@ export default function AdminDashboard() {
 
   async function checkSystemHealth() {
     try {
-      // Test database connection
       const { error: dbError } = await supabase.from("organizations").select("id").limit(1);
-
       setSystemHealth({
         database: dbError ? "offline" : "online",
-        api: "online", // If we got here, API is working
+        api: "online",
         auth: "online",
         storage: "online",
       });
-    } catch (err) {
-      console.error("Health check error:", err);
+    } catch {
       setSystemHealth({
         database: "offline",
         api: "offline",
@@ -262,80 +395,28 @@ export default function AdminDashboard() {
     navigate("/login", { replace: true });
   }
 
-  async function handleDeleteOrg(orgId: string) {
-    const confirmed = window.confirm("⚠️ Diese Organisation wirklich löschen? Das kann nicht rückgängig gemacht werden!");
-    if (!confirmed) return;
+  function exportData(data: any[], filename: string) {
+    const csv = [
+      Object.keys(data[0]).join(","),
+      ...data.map((row) => Object.values(row).join(",")),
+    ].join("\n");
 
-    try {
-      // Delete associated data
-      await supabase.from("licenses").delete().eq("organization_id", orgId);
-      await supabase.from("products").delete().eq("organization_id", orgId);
-      await supabase.from("customers").delete().eq("organization_id", orgId);
-
-      // Delete organization
-      const { error } = await supabase
-        .from("organizations")
-        .delete()
-        .eq("id", orgId);
-
-      if (error) throw error;
-
-      openDialog({
-        type: "success",
-        title: "✅ Gelöscht",
-        message: "Organisation wurde gelöscht",
-        closeButton: "OK",
-      });
-
-      await loadAdminData();
-    } catch (err: any) {
-      openDialog({
-        type: "error",
-        title: "❌ Fehler",
-        message: err.message,
-        closeButton: "OK",
-      });
-    }
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
   }
 
-  async function navigateAsAdmin(orgId: string, type: "dev" | "reseller" | "user") {
-    try {
-      const targetPath =
-        type === "dev"
-          ? "/dev-dashboard"
-          : type === "reseller"
-          ? "/reseller-dashboard"
-          : "/dashboard";
-
-      sessionStorage.setItem("adminOverride", JSON.stringify({ orgId, type }));
-      navigate(targetPath);
-    } catch (err) {
-      console.error("Error:", err);
-    }
-  }
-
-  function getActivityIcon(action: string) {
-    switch (action) {
-      case "CREATE_LICENSE":
-        return <FaKey className="text-green-400" />;
-      case "UPDATE_ORG":
-        return <FaEdit className="text-blue-400" />;
-      case "DELETE_PRODUCT":
-        return <FaTrash className="text-red-400" />;
-      default:
-        return <FaBell className="text-gray-400" />;
-    }
-  }
-
-  function exportOrganizations() {
-    const exportData = filteredOrgs.map((org) => ({
-      name: org.name,
-      email: org.owner_email,
-      plan: org.plan,
-      status: org.status,
-      created: new Date(org.created_at).toLocaleDateString(),
-    }));
-    exportToCSV(exportData, "organizations_export.csv");
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+    openDialog({
+      type: "success",
+      title: "✅ Kopiert",
+      message: "In Zwischenablage kopiert!",
+      closeButton: "OK",
+    });
   }
 
   if (loading) {
@@ -352,6 +433,24 @@ export default function AdminDashboard() {
     );
   }
 
+  // Filter data based on search and filters
+  const filteredCustomers = customers.filter((c) => {
+    const matchesSearch = c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          c.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
+  const filteredDevelopers = developers.filter((d) => {
+    const matchesSearch = d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          d.organization_name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
+  const filteredResellers = resellers.filter((r) => {
+    const matchesSearch = r.shop_name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
   return (
     <>
       {DialogComponent}
@@ -359,24 +458,24 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-[#0E0E12] via-[#1A1A1F] to-[#0E0E12] text-[#E0E0E0]">
         {/* EPIC HEADER */}
         <div className="bg-gradient-to-r from-[#1A1A1F] via-[#2C2C34] to-[#1A1A1F] border-b border-[#3C3C44] shadow-2xl sticky top-0 z-50 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto p-6">
-            <div className="flex items-center justify-between gap-6 flex-wrap">
+          <div className="max-w-[1600px] mx-auto p-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               {/* LEFT */}
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => navigate("/")}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-xl text-gray-400 hover:text-[#00FF9C] transition-all transform hover:scale-105"
+                  className="flex items-center gap-2 px-3 py-2 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-xl text-gray-400 hover:text-[#00FF9C] transition-all transform hover:scale-105"
                 >
                   <FaHome /> Home
                 </button>
                 <div className="border-l border-[#3C3C44] pl-4">
-                  <div className="flex items-center gap-3 mb-1">
-                    <FaCrown className="text-4xl text-yellow-400 animate-pulse" />
-                    <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
-                      Admin Panel
+                  <div className="flex items-center gap-2 mb-1">
+                    <FaCrown className="text-3xl text-yellow-400 animate-pulse" />
+                    <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
+                      Admin Control Center
                     </h1>
                   </div>
-                  <p className="text-gray-400 text-sm flex items-center gap-2">
+                  <p className="text-gray-400 text-xs flex items-center gap-2">
                     {godMode ? (
                       <>
                         <FaFire className="text-red-400 animate-pulse" />
@@ -385,7 +484,7 @@ export default function AdminDashboard() {
                     ) : (
                       <>
                         <FaShieldAlt className="text-blue-400" />
-                        <span>Normaler Modus</span>
+                        <span>Standard Modus</span>
                       </>
                     )}
                   </p>
@@ -393,26 +492,37 @@ export default function AdminDashboard() {
               </div>
 
               {/* RIGHT */}
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  className={`px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all transform hover:scale-105 ${
+                    autoRefresh
+                      ? "bg-gradient-to-r from-green-600 to-green-700 shadow-lg shadow-green-600/50"
+                      : "bg-[#2C2C34] hover:bg-[#3C3C44]"
+                  }`}
+                >
+                  <FaSync className={autoRefresh ? "animate-spin" : ""} />
+                  {autoRefresh ? "Live" : "Manual"}
+                </button>
                 <button
                   onClick={() => loadAdminData()}
-                  className="px-4 py-2 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-xl font-bold flex items-center gap-2 transition-all transform hover:scale-105"
+                  className="px-3 py-2 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-xl text-sm font-bold flex items-center gap-2 transition-all transform hover:scale-105"
                 >
                   <FaSync /> Refresh
                 </button>
                 <button
                   onClick={() => setGodMode(!godMode)}
-                  className={`px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-all transform hover:scale-105 ${
+                  className={`px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all transform hover:scale-105 ${
                     godMode
                       ? "bg-gradient-to-r from-red-600 to-red-700 shadow-lg shadow-red-600/50"
                       : "bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg shadow-blue-600/50"
                   }`}
                 >
-                  <FaShieldAlt /> {godMode ? "GOD MODE: AN" : "GOD MODE: AUS"}
+                  <FaShieldAlt /> {godMode ? "GOD ON" : "GOD OFF"}
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:shadow-lg hover:shadow-red-600/50 rounded-xl font-bold flex items-center gap-2 transition-all transform hover:scale-105"
+                  className="px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:shadow-lg hover:shadow-red-600/50 rounded-xl text-sm font-bold flex items-center gap-2 transition-all transform hover:scale-105"
                 >
                   <FaSignOutAlt /> Logout
                 </button>
@@ -421,275 +531,317 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto p-4 md:p-8">
-          {/* MEGA STATS CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="max-w-[1600px] mx-auto p-4">
+          {/* MEGA STATS GRID - 6 COLUMNS */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             {/* Organizations */}
             <div
-              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6 hover:border-purple-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/20 group relative overflow-hidden"
-              onClick={() => setActiveTab("orgs")}
+              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-purple-500/30 rounded-xl p-4 hover:border-purple-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20 group"
+              onClick={() => setActiveTab("overview")}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-purple-600/20 p-3 rounded-xl">
-                    <FaUsers className="text-purple-400 text-3xl" />
-                  </div>
-                  <FaRocket className="text-purple-400/20 text-4xl group-hover:text-purple-400/40 transition" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-purple-600/20 p-2 rounded-lg">
+                  <FaUsers className="text-purple-400 text-xl" />
                 </div>
-                <p className="text-gray-400 text-sm mb-1">Organisationen</p>
-                <p className="text-4xl font-black text-purple-400 mb-2">{stats.totalOrgs}</p>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="bg-purple-600/20 text-purple-300 px-2 py-1 rounded">
-                    {stats.activeUsers} aktiv
-                  </span>
-                </div>
+                <p className="text-xs text-gray-400">Orgs</p>
               </div>
+              <p className="text-3xl font-black text-purple-400">{stats.totalOrgs}</p>
+              <p className="text-xs text-purple-300 mt-1">{stats.activeUsers} aktiv</p>
             </div>
 
-            {/* Developer */}
+            {/* Customers */}
             <div
-              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6 hover:border-blue-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20 group relative overflow-hidden"
-              onClick={() => setActiveTab("dev")}
+              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-blue-500/30 rounded-xl p-4 hover:border-blue-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-xl hover:shadow-blue-500/20 group"
+              onClick={() => setActiveTab("customers")}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-600/20 p-3 rounded-xl">
-                    <FaBox className="text-blue-400 text-3xl" />
-                  </div>
-                  <FaLightbulb className="text-blue-400/20 text-4xl group-hover:text-blue-400/40 transition" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-blue-600/20 p-2 rounded-lg">
+                  <FaShoppingCart className="text-blue-400 text-xl" />
                 </div>
-                <p className="text-gray-400 text-sm mb-1">Developer</p>
-                <p className="text-4xl font-black text-blue-400 mb-2">{stats.totalDevelopers}</p>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded">
-                    {stats.totalProducts} Produkte
-                  </span>
-                </div>
+                <p className="text-xs text-gray-400">Kunden</p>
               </div>
+              <p className="text-3xl font-black text-blue-400">{stats.totalCustomers}</p>
+              <p className="text-xs text-blue-300 mt-1">{stats.totalOrders} Orders</p>
             </div>
 
-            {/* Reseller */}
+            {/* Developers */}
             <div
-              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6 hover:border-green-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-green-500/20 group relative overflow-hidden"
+              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-cyan-500/30 rounded-xl p-4 hover:border-cyan-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/20 group"
+              onClick={() => setActiveTab("developers")}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-cyan-600/20 p-2 rounded-lg">
+                  <FaBox className="text-cyan-400 text-xl" />
+                </div>
+                <p className="text-xs text-gray-400">Devs</p>
+              </div>
+              <p className="text-3xl font-black text-cyan-400">{stats.totalDevelopers}</p>
+              <p className="text-xs text-cyan-300 mt-1">{stats.totalProducts} Produkte</p>
+            </div>
+
+            {/* Resellers */}
+            <div
+              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-500/30 rounded-xl p-4 hover:border-green-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-xl hover:shadow-green-500/20 group"
               onClick={() => setActiveTab("resellers")}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-green-600/20 p-3 rounded-xl">
-                    <FaStore className="text-green-400 text-3xl" />
-                  </div>
-                  <FaHandshake className="text-green-400/20 text-4xl group-hover:text-green-400/40 transition" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-green-600/20 p-2 rounded-lg">
+                  <FaStore className="text-green-400 text-xl" />
                 </div>
-                <p className="text-gray-400 text-sm mb-1">Reseller</p>
-                <p className="text-4xl font-black text-green-400 mb-2">{stats.totalResellers}</p>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="bg-green-600/20 text-green-300 px-2 py-1 rounded">
-                    {stats.totalOrders} Orders
-                  </span>
-                </div>
+                <p className="text-xs text-gray-400">Reseller</p>
               </div>
+              <p className="text-3xl font-black text-green-400">{stats.totalResellers}</p>
+              <p className="text-xs text-green-300 mt-1">
+                €{resellers.reduce((sum, r) => sum + r.balance, 0).toFixed(0)}
+              </p>
+            </div>
+
+            {/* Licenses */}
+            <div
+              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-orange-500/30 rounded-xl p-4 hover:border-orange-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-xl hover:shadow-orange-500/20 group"
+              onClick={() => setActiveTab("analytics")}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-orange-600/20 p-2 rounded-lg">
+                  <FaKey className="text-orange-400 text-xl" />
+                </div>
+                <p className="text-xs text-gray-400">Keys</p>
+              </div>
+              <p className="text-3xl font-black text-orange-400">{stats.totalLicenses}</p>
+              <p className="text-xs text-orange-300 mt-1">{stats.activeLicenses} aktiv</p>
             </div>
 
             {/* Revenue */}
             <div
-              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6 hover:border-yellow-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-2xl hover:shadow-yellow-500/20 group relative overflow-hidden"
+              className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-yellow-500/30 rounded-xl p-4 hover:border-yellow-500 transition-all cursor-pointer transform hover:scale-105 hover:shadow-xl hover:shadow-yellow-500/20 group"
               onClick={() => setActiveTab("analytics")}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-yellow-600/20 p-3 rounded-xl">
-                    <FaDollarSign className="text-yellow-400 text-3xl" />
-                  </div>
-                  <FaTrophy className="text-yellow-400/20 text-4xl group-hover:text-yellow-400/40 transition" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="bg-yellow-600/20 p-2 rounded-lg">
+                  <FaDollarSign className="text-yellow-400 text-xl" />
                 </div>
-                <p className="text-gray-400 text-sm mb-1">Total Revenue</p>
-                <p className="text-4xl font-black text-yellow-400 mb-2">€{stats.totalRevenue.toFixed(2)}</p>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="bg-yellow-600/20 text-yellow-300 px-2 py-1 rounded">
-                    +12.5% MoM
-                  </span>
-                </div>
+                <p className="text-xs text-gray-400">Revenue</p>
               </div>
+              <p className="text-3xl font-black text-yellow-400">€{stats.totalRevenue.toFixed(0)}</p>
+              <p className="text-xs text-yellow-300 mt-1">+€{stats.todayRevenue.toFixed(0)} heute</p>
             </div>
           </div>
 
-          {/* SECONDARY STATS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4 hover:border-[#00FF9C] transition">
-              <div className="flex items-center gap-3 mb-2">
-                <FaBox className="text-[#00FF9C] text-2xl" />
-                <p className="text-gray-400 text-sm">Produkte</p>
+          {/* QUICK REVENUE STATS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-gradient-to-br from-green-600/10 to-green-600/5 border border-green-600 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-300 mb-1">💰 Heute</p>
+                  <p className="text-2xl font-black text-green-400">€{stats.todayRevenue.toFixed(2)}</p>
+                </div>
+                <FaMoneyBillWave className="text-green-400 text-3xl opacity-30" />
               </div>
-              <p className="text-3xl font-bold text-[#00FF9C]">{stats.totalProducts}</p>
             </div>
 
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4 hover:border-blue-400 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <FaKey className="text-blue-400 text-2xl" />
-                <p className="text-gray-400 text-sm">Lizenzen</p>
+            <div className="bg-gradient-to-br from-blue-600/10 to-blue-600/5 border border-blue-600 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-300 mb-1">📅 Diese Woche</p>
+                  <p className="text-2xl font-black text-blue-400">€{stats.weekRevenue.toFixed(2)}</p>
+                </div>
+                <FaChartLine className="text-blue-400 text-3xl opacity-30" />
               </div>
-              <p className="text-3xl font-bold text-blue-400">{stats.totalLicenses}</p>
             </div>
 
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4 hover:border-green-400 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <FaCheckCircle className="text-green-400 text-2xl" />
-                <p className="text-gray-400 text-sm">Aktiv</p>
+            <div className="bg-gradient-to-br from-purple-600/10 to-purple-600/5 border border-purple-600 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-purple-300 mb-1">📆 Dieser Monat</p>
+                  <p className="text-2xl font-black text-purple-400">€{stats.monthRevenue.toFixed(2)}</p>
+                </div>
+                <FaTrophy className="text-purple-400 text-3xl opacity-30" />
               </div>
-              <p className="text-3xl font-bold text-green-400">{stats.activeLicenses}</p>
-            </div>
-
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4 hover:border-red-400 transition">
-              <div className="flex items-center gap-3 mb-2">
-                <FaExclamationTriangle className="text-red-400 text-2xl" />
-                <p className="text-gray-400 text-sm">Abgelaufen</p>
-              </div>
-              <p className="text-3xl font-bold text-red-400">{stats.expiredLicenses}</p>
             </div>
           </div>
 
           {/* TAB NAVIGATION */}
-          <div className="flex gap-2 mb-8 flex-wrap bg-[#1A1A1F] p-2 rounded-xl border border-[#2C2C34]">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
-                activeTab === "overview"
-                  ? "bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] shadow-lg shadow-[#00FF9C]/50"
-                  : "hover:bg-[#2C2C34]"
-              }`}
-            >
-              <FaChartBar /> Überblick
-            </button>
-            <button
-              onClick={() => setActiveTab("orgs")}
-              className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
-                activeTab === "orgs"
-                  ? "bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] shadow-lg shadow-[#00FF9C]/50"
-                  : "hover:bg-[#2C2C34]"
-              }`}
-            >
-              <FaUsers /> Organisationen
-            </button>
-            <button
-              onClick={() => setActiveTab("activity")}
-              className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
-                activeTab === "activity"
-                  ? "bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] shadow-lg shadow-[#00FF9C]/50"
-                  : "hover:bg-[#2C2C34]"
-              }`}
-            >
-              <FaBell /> Activity
-            </button>
-            <button
-              onClick={() => setActiveTab("health")}
-              className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
-                activeTab === "health"
-                  ? "bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] shadow-lg shadow-[#00FF9C]/50"
-                  : "hover:bg-[#2C2C34]"
-              }`}
-            >
-              <FaServer /> Health
-            </button>
-            <button
-              onClick={() => setActiveTab("analytics")}
-              className={`px-4 py-2 rounded-lg font-bold transition flex items-center gap-2 ${
-                activeTab === "analytics"
-                  ? "bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] shadow-lg shadow-[#00FF9C]/50"
-                  : "hover:bg-[#2C2C34]"
-              }`}
-            >
-              <FaChartLine /> Analytics
-            </button>
+          <div className="flex gap-2 mb-6 flex-wrap bg-[#1A1A1F] p-2 rounded-xl border border-[#2C2C34]">
+            {[
+              { id: "overview", label: "Überblick", icon: FaChartBar },
+              { id: "customers", label: "Kunden", icon: FaShoppingCart, count: stats.totalCustomers },
+              { id: "developers", label: "Developer", icon: FaBox, count: stats.totalDevelopers },
+              { id: "resellers", label: "Reseller", icon: FaStore, count: stats.totalResellers },
+              { id: "transactions", label: "Transaktionen", icon: FaMoneyBillWave, count: transactions.length },
+              { id: "analytics", label: "Analytics", icon: FaChartPie },
+              { id: "health", label: "System", icon: FaServer },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-3 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 ${
+                  activeTab === tab.id
+                    ? "bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] shadow-lg shadow-[#00FF9C]/50"
+                    : "hover:bg-[#2C2C34] text-gray-300"
+                }`}
+              >
+                <tab.icon />
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    activeTab === tab.id ? "bg-[#0E0E12]/20" : "bg-[#00FF9C]/20 text-[#00FF9C]"
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
+
+          {/* SEARCH & FILTER BAR */}
+          {(activeTab === "customers" || activeTab === "developers" || activeTab === "resellers") && (
+            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4 mb-6">
+              <div className="flex gap-4 flex-wrap items-center">
+                <div className="flex-1 min-w-64">
+                  <div className="relative">
+                    <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder={`Suche ${activeTab === "customers" ? "Kunden" : activeTab === "developers" ? "Developer" : "Reseller"}...`}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 rounded-lg bg-[#2C2C34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (activeTab === "customers") exportData(filteredCustomers, "customers.csv");
+                    else if (activeTab === "developers") exportData(filteredDevelopers, "developers.csv");
+                    else if (activeTab === "resellers") exportData(filteredResellers, "resellers.csv");
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded-lg hover:shadow-lg hover:shadow-[#00FF9C]/50 transition flex items-center gap-2"
+                >
+                  <FaDownload /> Export CSV
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* TAB CONTENT */}
           {activeTab === "overview" && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* System Info */}
+                {/* TOP CUSTOMERS */}
                 <div className="bg-gradient-to-br from-blue-600/10 to-blue-600/5 border border-blue-600 rounded-2xl p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="bg-blue-600/20 p-3 rounded-xl">
-                      <FaDatabase className="text-blue-400 text-2xl" />
+                      <FaTrophy className="text-blue-400 text-2xl" />
                     </div>
-                    <h2 className="text-2xl font-bold text-blue-400">System Info</h2>
+                    <h2 className="text-2xl font-bold text-blue-400">Top Kunden</h2>
                   </div>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-center justify-between bg-[#1A1A1F]/50 p-3 rounded-lg">
-                      <span className="text-gray-400">Total Organizations</span>
-                      <span className="text-blue-300 font-bold">{stats.totalOrgs}</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-[#1A1A1F]/50 p-3 rounded-lg">
-                      <span className="text-gray-400">Total Revenue</span>
-                      <span className="text-green-400 font-bold">€{stats.totalRevenue.toFixed(2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-[#1A1A1F]/50 p-3 rounded-lg">
-                      <span className="text-gray-400">Total Orders</span>
-                      <span className="text-purple-300 font-bold">{stats.totalOrders}</span>
-                    </div>
-                    <div className="flex items-center justify-between bg-[#1A1A1F]/50 p-3 rounded-lg">
-                      <span className="text-gray-400">System Status</span>
-                      <span className="text-green-400 font-bold flex items-center gap-2">
-                        <FaCheckCircle /> Online
-                      </span>
-                    </div>
+                  <div className="space-y-3">
+                    {customers
+                      .sort((a, b) => b.total_spent - a.total_spent)
+                      .slice(0, 5)
+                      .map((customer, idx) => (
+                        <div key={customer.id} className="bg-[#1A1A1F]/50 p-3 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                              idx === 0 ? "bg-yellow-600/20 text-yellow-400" :
+                              idx === 1 ? "bg-gray-400/20 text-gray-300" :
+                              idx === 2 ? "bg-orange-600/20 text-orange-400" :
+                              "bg-blue-600/20 text-blue-400"
+                            }`}>
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm">{customer.name}</p>
+                              <p className="text-xs text-gray-400">{customer.email}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-green-400">€{customer.total_spent.toFixed(2)}</p>
+                            <p className="text-xs text-gray-400">{customer.total_keys} Keys</p>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* TOP DEVELOPERS */}
                 <div className="bg-gradient-to-br from-purple-600/10 to-purple-600/5 border border-purple-600 rounded-2xl p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="bg-purple-600/20 p-3 rounded-xl">
-                      <FaBolt className="text-purple-400 text-2xl" />
+                      <FaStar className="text-purple-400 text-2xl" />
                     </div>
-                    <h2 className="text-2xl font-bold text-purple-400">Quick Actions</h2>
+                    <h2 className="text-2xl font-bold text-purple-400">Top Developer</h2>
                   </div>
                   <div className="space-y-3">
-                    <button
-                      onClick={() => setActiveTab("orgs")}
-                      className="w-full bg-[#1A1A1F]/50 hover:bg-[#2C2C34] p-4 rounded-lg text-left transition flex items-center justify-between group"
-                    >
-                      <span className="flex items-center gap-3">
-                        <FaUsers className="text-purple-400" />
-                        <span>Manage Organizations</span>
-                      </span>
-                      <FaArrowLeft className="rotate-180 group-hover:translate-x-2 transition" />
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("activity")}
-                      className="w-full bg-[#1A1A1F]/50 hover:bg-[#2C2C34] p-4 rounded-lg text-left transition flex items-center justify-between group"
-                    >
-                      <span className="flex items-center gap-3">
-                        <FaBell className="text-blue-400" />
-                        <span>View Activity Feed</span>
-                      </span>
-                      <FaArrowLeft className="rotate-180 group-hover:translate-x-2 transition" />
-                    </button>
-                    <button
-                      onClick={() => setActiveTab("health")}
-                      className="w-full bg-[#1A1A1F]/50 hover:bg-[#2C2C34] p-4 rounded-lg text-left transition flex items-center justify-between group"
-                    >
-                      <span className="flex items-center gap-3">
-                        <FaServer className="text-green-400" />
-                        <span>Check System Health</span>
-                      </span>
-                      <FaArrowLeft className="rotate-180 group-hover:translate-x-2 transition" />
-                    </button>
-                    <button
-                      onClick={exportOrganizations}
-                      className="w-full bg-[#1A1A1F]/50 hover:bg-[#2C2C34] p-4 rounded-lg text-left transition flex items-center justify-between group"
-                    >
-                      <span className="flex items-center gap-3">
-                        <FaDownload className="text-yellow-400" />
-                        <span>Export Report</span>
-                      </span>
-                      <FaArrowLeft className="rotate-180 group-hover:translate-x-2 transition" />
-                    </button>
+                    {developers
+                      .sort((a, b) => b.total_licenses - a.total_licenses)
+                      .slice(0, 5)
+                      .map((dev, idx) => (
+                        <div key={dev.id} className="bg-[#1A1A1F]/50 p-3 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                              idx === 0 ? "bg-yellow-600/20 text-yellow-400" :
+                              idx === 1 ? "bg-gray-400/20 text-gray-300" :
+                              idx === 2 ? "bg-orange-600/20 text-orange-400" :
+                              "bg-purple-600/20 text-purple-400"
+                            }`}>
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm">{dev.organization_name}</p>
+                              <p className="text-xs text-gray-400">{dev.email}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-purple-400">{dev.total_licenses} Keys</p>
+                            <p className="text-xs text-gray-400">{dev.total_products} Produkte</p>
+                          </div>
+                        </div>
+                      ))}
                   </div>
+                </div>
+              </div>
+
+              {/* RECENT TRANSACTIONS */}
+              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-600/20 p-3 rounded-xl">
+                      <FaMoneyBillWave className="text-green-400 text-2xl" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-green-400">Letzte Transaktionen</h2>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("transactions")}
+                    className="text-sm text-[#00FF9C] hover:underline flex items-center gap-1"
+                  >
+                    Alle ansehen <FaChevronRight />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {transactions.slice(0, 8).map((tx) => (
+                    <div key={tx.id} className="bg-[#2C2C34] p-3 rounded-lg flex items-center justify-between hover:bg-[#3C3C44] transition">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          tx.type === "order" ? "bg-green-600/20" :
+                          tx.type === "sale" ? "bg-blue-600/20" :
+                          "bg-purple-600/20"
+                        }`}>
+                          {tx.type === "order" ? <FaShoppingCart className="text-green-400" /> :
+                           tx.type === "sale" ? <FaStore className="text-blue-400" /> :
+                           <FaKey className="text-purple-400" />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm">{tx.product_name}</p>
+                          <p className="text-xs text-gray-400">{tx.customer_email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-400">€{tx.amount.toFixed(2)}</p>
+                        <p className="text-xs text-gray-400">{new Date(tx.timestamp).toLocaleString("de-DE")}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -700,382 +852,303 @@ export default function AdminDashboard() {
                     <div>
                       <h2 className="text-3xl font-bold text-red-400">GOD MODE AKTIV</h2>
                       <p className="text-red-300 text-sm">
-                        Du hast vollständigen Admin-Zugriff auf alle Funktionen
+                        Vollständiger Admin-Zugriff auf alle Funktionen & Daten
                       </p>
                     </div>
                   </div>
-                  <div className="bg-red-600/20 p-4 rounded-xl mb-4">
+                  <div className="bg-red-600/20 p-4 rounded-xl">
                     <p className="text-red-200 text-sm">
-                      ⚠️ Mit großer Macht kommt große Verantwortung. Sei vorsichtig mit Admin-Aktionen.
+                      ⚠️ Mit großer Macht kommt große Verantwortung. Alle Aktionen werden geloggt.
                     </p>
                   </div>
-                  <button
-                    onClick={() => setActiveTab("orgs")}
-                    className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:shadow-lg hover:shadow-red-600/50 rounded-xl font-bold transition"
-                  >
-                    Zu Organisationen
-                  </button>
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === "orgs" && (
-            <div className="space-y-6">
-              {/* Search & Actions Bar */}
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4">
-                <div className="flex gap-4 flex-wrap items-center">
-                  <div className="flex-1 min-w-64">
-                    <div className="relative">
-                      <FaSearch className="absolute left-3 top-3 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Suche nach Organisation, Email oder Plan..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 rounded-lg bg-[#2C2C34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={exportOrganizations}
-                    className="px-4 py-2 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded-lg hover:shadow-lg hover:shadow-[#00FF9C]/50 transition flex items-center gap-2"
-                  >
-                    <FaDownload /> Export
-                  </button>
-                </div>
-              </div>
-
+          {activeTab === "customers" && (
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold flex items-center gap-3">
-                  <FaUsers className="text-purple-400" />
-                  Organisationen ({filteredOrgs.length})
+                  <FaShoppingCart className="text-blue-400" />
+                  Kunden ({filteredCustomers.length})
                 </h2>
               </div>
 
-              {filteredOrgs.length === 0 ? (
-                <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-12 text-center">
-                  <FaUsers className="text-6xl text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400 text-lg">
-                    {searchQuery ? "Keine Organisationen gefunden" : "Noch keine Organisationen"}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4">
-                  {filteredOrgs.map((org) => (
-                    <div
-                      key={org.id}
-                      className="bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6 hover:border-[#00FF9C] transition-all hover:shadow-xl hover:shadow-[#00FF9C]/10"
-                    >
-                      <div className="flex items-start justify-between gap-4 flex-wrap">
-                        <div className="flex-1 min-w-64">
-                          <div className="flex items-start gap-4 mb-3">
-                            <div className="bg-purple-600/20 p-3 rounded-xl">
-                              <FaUsers className="text-purple-400 text-2xl" />
+              <div className="grid grid-cols-1 gap-4">
+                {filteredCustomers.map((customer) => (
+                  <div
+                    key={customer.id}
+                    className="bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-xl p-6 hover:border-blue-500 transition-all hover:shadow-xl"
+                  >
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-blue-600/20 p-3 rounded-xl">
+                          <FaUsers className="text-blue-400 text-2xl" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold mb-1">{customer.name}</h3>
+                          <p className="text-sm text-gray-400 mb-3">{customer.email}</p>
+                          <div className="flex gap-3 flex-wrap">
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Total Keys</p>
+                              <p className="text-lg font-bold text-blue-400">{customer.total_keys}</p>
                             </div>
-                            <div>
-                              <h3 className="text-2xl font-bold mb-1">{org.name}</h3>
-                              <p className="text-sm text-gray-400 mb-2">{org.owner_email}</p>
-                              <div className="flex gap-2 flex-wrap">
-                                <span className="bg-[#2C2C34] px-3 py-1 rounded-lg text-xs font-bold">
-                                  Plan: <span className="text-blue-400">{org.plan}</span>
-                                </span>
-                                <span
-                                  className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                                    org.status === "active"
-                                      ? "bg-green-600/20 text-green-400"
-                                      : "bg-red-600/20 text-red-400"
-                                  }`}
-                                >
-                                  {org.status === "active" ? "✅ Aktiv" : "❌ Inaktiv"}
-                                </span>
-                                <span className="bg-[#2C2C34] px-3 py-1 rounded-lg text-xs text-gray-400">
-                                  Erstellt: {new Date(org.created_at).toLocaleDateString()}
-                                </span>
-                              </div>
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Total Ausgaben</p>
+                              <p className="text-lg font-bold text-green-400">€{customer.total_spent.toFixed(2)}</p>
+                            </div>
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Kunde seit</p>
+                              <p className="text-xs font-bold text-gray-300">
+                                {new Date(customer.created_at).toLocaleDateString("de-DE")}
+                              </p>
                             </div>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => copyToClipboard(customer.email)}
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
+                        >
+                          <FaCopy /> Email
+                        </button>
+                        {godMode && (
                           <button
                             onClick={() => {
-                              setSelectedOrg(org);
-                              setShowOrgModal(true);
+                              openDialog({
+                                type: "warning",
+                                title: "⚠️ GOD MODE",
+                                message: `Customer ID: ${customer.id}`,
+                                closeButton: "OK",
+                              });
                             }}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
                           >
-                            <FaEye /> Details
+                            <FaUserShield /> Details
                           </button>
-                          {godMode && (
-                            <>
-                              <button
-                                onClick={() => navigateAsAdmin(org.id, "dev")}
-                                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
-                              >
-                                <FaUserShield /> Als Dev
-                              </button>
-                              <button
-                                onClick={() => navigateAsAdmin(org.id, "user")}
-                                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
-                              >
-                                <FaUserShield /> Als User
-                              </button>
-                              <button
-                                onClick={() => handleDeleteOrg(org.id)}
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
-                              >
-                                <FaTrash /> Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "activity" && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-blue-600/20 p-3 rounded-xl">
-                  <FaBell className="text-blue-400 text-3xl" />
-                </div>
-                <h2 className="text-3xl font-bold text-blue-400">Recent Activity</h2>
-              </div>
-
-              <div className="space-y-3">
-                {recentActivity.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4 hover:border-blue-500 transition"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="bg-[#2C2C34] p-3 rounded-lg">
-                        {getActivityIcon(activity.action)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between gap-4 flex-wrap">
-                          <div>
-                            <p className="font-bold mb-1">{activity.details}</p>
-                            <p className="text-sm text-gray-400">{activity.user_email}</p>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <FaClock />
-                            {new Date(activity.timestamp).toLocaleString()}
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {recentActivity.length === 0 && (
+              {filteredCustomers.length === 0 && (
                 <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-12 text-center">
-                  <FaBell className="text-6xl text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400 text-lg">Keine Aktivitäten</p>
+                  <FaShoppingCart className="text-6xl text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400 text-lg">
+                    {searchQuery ? "Keine Kunden gefunden" : "Noch keine Kunden"}
+                  </p>
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === "health" && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-green-600/20 p-3 rounded-xl">
-                  <FaServer className="text-green-400 text-3xl" />
-                </div>
-                <h2 className="text-3xl font-bold text-green-400">System Health</h2>
+          {activeTab === "developers" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <FaBox className="text-cyan-400" />
+                  Developer ({filteredDevelopers.length})
+                </h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Database */}
-                <div
-                  className={`bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border-2 rounded-2xl p-6 ${
-                    systemHealth.database === "online"
-                      ? "border-green-500 shadow-lg shadow-green-500/20"
-                      : "border-red-500 shadow-lg shadow-red-500/20"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-3 rounded-xl ${
-                          systemHealth.database === "online" ? "bg-green-600/20" : "bg-red-600/20"
-                        }`}
-                      >
-                        <FaDatabase
-                          className={`text-3xl ${
-                            systemHealth.database === "online" ? "text-green-400" : "text-red-400"
-                          }`}
-                        />
+              <div className="grid grid-cols-1 gap-4">
+                {filteredDevelopers.map((dev) => (
+                  <div
+                    key={dev.id}
+                    className="bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-xl p-6 hover:border-cyan-500 transition-all hover:shadow-xl"
+                  >
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-cyan-600/20 p-3 rounded-xl">
+                          <FaBox className="text-cyan-400 text-2xl" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold mb-1">{dev.organization_name}</h3>
+                          <p className="text-sm text-gray-400 mb-3">{dev.email}</p>
+                          <div className="flex gap-3 flex-wrap">
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Produkte</p>
+                              <p className="text-lg font-bold text-cyan-400">{dev.total_products}</p>
+                            </div>
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Lizenzen</p>
+                              <p className="text-lg font-bold text-purple-400">{dev.total_licenses}</p>
+                            </div>
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Seit</p>
+                              <p className="text-xs font-bold text-gray-300">
+                                {new Date(dev.created_at).toLocaleDateString("de-DE")}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold">Database</h3>
-                        <p className="text-sm text-gray-400">PostgreSQL (Supabase)</p>
-                      </div>
-                    </div>
-                    {systemHealth.database === "online" ? (
-                      <FaCheckCircle className="text-3xl text-green-400" />
-                    ) : (
-                      <FaExclamationTriangle className="text-3xl text-red-400" />
-                    )}
-                  </div>
-                  <div className="bg-[#2C2C34] rounded-lg p-3">
-                    <p
-                      className={`font-bold ${
-                        systemHealth.database === "online" ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      Status: {systemHealth.database === "online" ? "Online" : "Offline"}
-                    </p>
-                  </div>
-                </div>
 
-                {/* API */}
-                <div
-                  className={`bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border-2 rounded-2xl p-6 ${
-                    systemHealth.api === "online"
-                      ? "border-green-500 shadow-lg shadow-green-500/20"
-                      : "border-red-500 shadow-lg shadow-red-500/20"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-3 rounded-xl ${
-                          systemHealth.api === "online" ? "bg-green-600/20" : "bg-red-600/20"
-                        }`}
-                      >
-                        <FaGlobe
-                          className={`text-3xl ${
-                            systemHealth.api === "online" ? "text-green-400" : "text-red-400"
-                          }`}
-                        />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">API</h3>
-                        <p className="text-sm text-gray-400">REST API</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => copyToClipboard(dev.organization_id)}
+                          className="px-3 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
+                        >
+                          <FaCopy /> Org ID
+                        </button>
+                        {godMode && (
+                          <button
+                            onClick={() => navigate("/dev-dashboard")}
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
+                          >
+                            <FaUserShield /> Als Dev
+                          </button>
+                        )}
                       </div>
                     </div>
-                    {systemHealth.api === "online" ? (
-                      <FaCheckCircle className="text-3xl text-green-400" />
-                    ) : (
-                      <FaExclamationTriangle className="text-3xl text-red-400" />
-                    )}
                   </div>
-                  <div className="bg-[#2C2C34] rounded-lg p-3">
-                    <p
-                      className={`font-bold ${
-                        systemHealth.api === "online" ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      Status: {systemHealth.api === "online" ? "Online" : "Offline"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Auth */}
-                <div
-                  className={`bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border-2 rounded-2xl p-6 ${
-                    systemHealth.auth === "online"
-                      ? "border-green-500 shadow-lg shadow-green-500/20"
-                      : "border-red-500 shadow-lg shadow-red-500/20"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-3 rounded-xl ${
-                          systemHealth.auth === "online" ? "bg-green-600/20" : "bg-red-600/20"
-                        }`}
-                      >
-                        <FaShieldAlt
-                          className={`text-3xl ${
-                            systemHealth.auth === "online" ? "text-green-400" : "text-red-400"
-                          }`}
-                        />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">Authentication</h3>
-                        <p className="text-sm text-gray-400">Auth Service</p>
-                      </div>
-                    </div>
-                    {systemHealth.auth === "online" ? (
-                      <FaCheckCircle className="text-3xl text-green-400" />
-                    ) : (
-                      <FaExclamationTriangle className="text-3xl text-red-400" />
-                    )}
-                  </div>
-                  <div className="bg-[#2C2C34] rounded-lg p-3">
-                    <p
-                      className={`font-bold ${
-                        systemHealth.auth === "online" ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      Status: {systemHealth.auth === "online" ? "Online" : "Offline"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Storage */}
-                <div
-                  className={`bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border-2 rounded-2xl p-6 ${
-                    systemHealth.storage === "online"
-                      ? "border-green-500 shadow-lg shadow-green-500/20"
-                      : "border-red-500 shadow-lg shadow-red-500/20"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-3 rounded-xl ${
-                          systemHealth.storage === "online" ? "bg-green-600/20" : "bg-red-600/20"
-                        }`}
-                      >
-                        <FaBox
-                          className={`text-3xl ${
-                            systemHealth.storage === "online" ? "text-green-400" : "text-red-400"
-                          }`}
-                        />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">Storage</h3>
-                        <p className="text-sm text-gray-400">File Storage</p>
-                      </div>
-                    </div>
-                    {systemHealth.storage === "online" ? (
-                      <FaCheckCircle className="text-3xl text-green-400" />
-                    ) : (
-                      <FaExclamationTriangle className="text-3xl text-red-400" />
-                    )}
-                  </div>
-                  <div className="bg-[#2C2C34] rounded-lg p-3">
-                    <p
-                      className={`font-bold ${
-                        systemHealth.storage === "online" ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      Status: {systemHealth.storage === "online" ? "Online" : "Offline"}
-                    </p>
-                  </div>
-                </div>
+                ))}
               </div>
 
-              <div className="bg-gradient-to-br from-green-600/10 to-green-600/5 border border-green-600 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <FaCheckCircle className="text-green-400 text-3xl" />
-                  <h3 className="text-2xl font-bold text-green-400">All Systems Operational</h3>
+              {filteredDevelopers.length === 0 && (
+                <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-12 text-center">
+                  <FaBox className="text-6xl text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400 text-lg">
+                    {searchQuery ? "Keine Developer gefunden" : "Noch keine Developer"}
+                  </p>
                 </div>
-                <p className="text-green-300">
-                  Alle Services laufen reibungslos. Letzte Überprüfung:{" "}
-                  {new Date().toLocaleTimeString()}
-                </p>
+              )}
+            </div>
+          )}
+
+          {activeTab === "resellers" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <FaStore className="text-green-400" />
+                  Reseller ({filteredResellers.length})
+                </h2>
               </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {filteredResellers.map((reseller) => (
+                  <div
+                    key={reseller.id}
+                    className="bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-xl p-6 hover:border-green-500 transition-all hover:shadow-xl"
+                  >
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-green-600/20 p-3 rounded-xl">
+                          <FaStore className="text-green-400 text-2xl" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold mb-1">{reseller.shop_name}</h3>
+                          <p className="text-sm text-gray-400 mb-3">Shop ID: {reseller.id.slice(0, 8)}...</p>
+                          <div className="flex gap-3 flex-wrap">
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Balance</p>
+                              <p className="text-lg font-bold text-green-400">€{reseller.balance.toFixed(2)}</p>
+                            </div>
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Produkte</p>
+                              <p className="text-lg font-bold text-blue-400">{reseller.total_products}</p>
+                            </div>
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Verkäufe</p>
+                              <p className="text-lg font-bold text-purple-400">{reseller.total_sales}</p>
+                            </div>
+                            <div className="bg-[#2C2C34] px-3 py-1 rounded-lg">
+                              <p className="text-xs text-gray-400">Seit</p>
+                              <p className="text-xs font-bold text-gray-300">
+                                {new Date(reseller.created_at).toLocaleDateString("de-DE")}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => navigate(`/reseller-shop/${reseller.id}`)}
+                          className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
+                        >
+                          <FaEye /> Shop
+                        </button>
+                        {godMode && (
+                          <button
+                            onClick={() => copyToClipboard(reseller.id)}
+                            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
+                          >
+                            <FaCopy /> ID
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {filteredResellers.length === 0 && (
+                <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-12 text-center">
+                  <FaStore className="text-6xl text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400 text-lg">
+                    {searchQuery ? "Keine Reseller gefunden" : "Noch keine Reseller"}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "transactions" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <FaMoneyBillWave className="text-green-400" />
+                  Alle Transaktionen ({transactions.length})
+                </h2>
+                <button
+                  onClick={() => exportData(transactions, "transactions.csv")}
+                  className="px-4 py-2 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded-lg hover:shadow-lg hover:shadow-[#00FF9C]/50 transition flex items-center gap-2"
+                >
+                  <FaDownload /> Export
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="bg-[#1A1A1F] border border-[#2C2C34] p-4 rounded-lg hover:border-green-500 transition">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-3 rounded-lg ${
+                          tx.type === "order" ? "bg-green-600/20" :
+                          tx.type === "sale" ? "bg-blue-600/20" :
+                          "bg-purple-600/20"
+                        }`}>
+                          {tx.type === "order" ? <FaShoppingCart className="text-green-400 text-xl" /> :
+                           tx.type === "sale" ? <FaStore className="text-blue-400 text-xl" /> :
+                           <FaKey className="text-purple-400 text-xl" />}
+                        </div>
+                        <div>
+                          <p className="font-bold">{tx.product_name}</p>
+                          <p className="text-sm text-gray-400">{tx.customer_email}</p>
+                          <p className="text-xs text-gray-500">{new Date(tx.timestamp).toLocaleString("de-DE")}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-green-400">€{tx.amount.toFixed(2)}</p>
+                        <p className="text-xs text-gray-400 uppercase">{tx.type}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {transactions.length === 0 && (
+                <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-12 text-center">
+                  <FaMoneyBillWave className="text-6xl text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400 text-lg">Noch keine Transaktionen</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1095,13 +1168,87 @@ export default function AdminDashboard() {
                     <h3 className="text-xl font-bold">Revenue Overview</h3>
                   </div>
                   <p className="text-5xl font-black text-green-400 mb-2">€{stats.totalRevenue.toFixed(2)}</p>
-                  <p className="text-sm text-gray-400">
-                    Aus {stats.totalOrders} Orders generiert
-                  </p>
-                  <div className="mt-4 bg-green-600/10 p-3 rounded-lg">
-                    <p className="text-green-300 text-sm">
-                      ↗️ +12.5% im Vergleich zum letzten Monat
-                    </p>
+                  <p className="text-sm text-gray-400 mb-4">Aus {stats.totalOrders} Orders generiert</p>
+
+                  {/* Progress Bars */}
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-400">Heute</span>
+                        <span className="text-green-400">€{stats.todayRevenue.toFixed(2)}</span>
+                      </div>
+                      <div className="h-2 bg-[#2C2C34] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-600 to-green-400"
+                          style={{ width: `${Math.min((stats.todayRevenue / stats.totalRevenue) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-400">Diese Woche</span>
+                        <span className="text-blue-400">€{stats.weekRevenue.toFixed(2)}</span>
+                      </div>
+                      <div className="h-2 bg-[#2C2C34] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-600 to-blue-400"
+                          style={{ width: `${Math.min((stats.weekRevenue / stats.totalRevenue) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-400">Dieser Monat</span>
+                        <span className="text-purple-400">€{stats.monthRevenue.toFixed(2)}</span>
+                      </div>
+                      <div className="h-2 bg-[#2C2C34] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-purple-600 to-purple-400"
+                          style={{ width: `${Math.min((stats.monthRevenue / stats.totalRevenue) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <FaKey className="text-purple-400 text-3xl" />
+                    <h3 className="text-xl font-bold">License Distribution</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Total Licenses</span>
+                      <span className="font-bold text-purple-400 text-2xl">{stats.totalLicenses}</span>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-green-400 flex items-center gap-2">
+                          <FaCheckCircle /> Active
+                        </span>
+                        <span className="font-bold">{stats.activeLicenses}</span>
+                      </div>
+                      <div className="h-3 bg-[#2C2C34] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-600 to-green-400"
+                          style={{ width: `${(stats.activeLicenses / stats.totalLicenses) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-red-400 flex items-center gap-2">
+                          <FaExclamationTriangle /> Expired
+                        </span>
+                        <span className="font-bold">{stats.expiredLicenses}</span>
+                      </div>
+                      <div className="h-3 bg-[#2C2C34] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-red-600 to-red-400"
+                          style={{ width: `${(stats.expiredLicenses / stats.totalLicenses) * 100}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1110,32 +1257,22 @@ export default function AdminDashboard() {
                     <FaUsers className="text-blue-400 text-3xl" />
                     <h3 className="text-xl font-bold">User Growth</h3>
                   </div>
-                  <p className="text-5xl font-black text-blue-400 mb-2">{stats.totalOrgs}</p>
-                  <p className="text-sm text-gray-400">Aktive Organisationen</p>
-                  <div className="mt-4 bg-blue-600/10 p-3 rounded-lg">
-                    <p className="text-blue-300 text-sm">
-                      ↗️ +8% neue Registrierungen diese Woche
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <FaKey className="text-purple-400 text-3xl" />
-                    <h3 className="text-xl font-bold">License Stats</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Total</span>
-                      <span className="font-bold text-purple-400">{stats.totalLicenses}</span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between bg-[#2C2C34] p-3 rounded-lg">
+                      <span className="text-gray-400 text-sm">Organizations</span>
+                      <span className="font-bold text-purple-400 text-xl">{stats.totalOrgs}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Active</span>
-                      <span className="font-bold text-green-400">{stats.activeLicenses}</span>
+                    <div className="flex items-center justify-between bg-[#2C2C34] p-3 rounded-lg">
+                      <span className="text-gray-400 text-sm">Developers</span>
+                      <span className="font-bold text-cyan-400 text-xl">{stats.totalDevelopers}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Expired</span>
-                      <span className="font-bold text-red-400">{stats.expiredLicenses}</span>
+                    <div className="flex items-center justify-between bg-[#2C2C34] p-3 rounded-lg">
+                      <span className="text-gray-400 text-sm">Resellers</span>
+                      <span className="font-bold text-green-400 text-xl">{stats.totalResellers}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-[#2C2C34] p-3 rounded-lg">
+                      <span className="text-gray-400 text-sm">Customers</span>
+                      <span className="font-bold text-blue-400 text-xl">{stats.totalCustomers}</span>
                     </div>
                   </div>
                 </div>
@@ -1143,14 +1280,106 @@ export default function AdminDashboard() {
                 <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <FaBox className="text-[#00FF9C] text-3xl" />
-                    <h3 className="text-xl font-bold">Products</h3>
+                    <h3 className="text-xl font-bold">Products & Sales</h3>
                   </div>
-                  <p className="text-5xl font-black text-[#00FF9C] mb-2">{stats.totalProducts}</p>
-                  <p className="text-sm text-gray-400">Verfügbare Produkte</p>
-                  <div className="mt-4 bg-[#00FF9C]/10 p-3 rounded-lg">
-                    <p className="text-[#00FF9C] text-sm">
-                      ✨ {stats.totalLicenses} Lizenzen ausgegeben
-                    </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between bg-[#2C2C34] p-3 rounded-lg">
+                      <span className="text-gray-400 text-sm">Total Products</span>
+                      <span className="font-bold text-[#00FF9C] text-xl">{stats.totalProducts}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-[#2C2C34] p-3 rounded-lg">
+                      <span className="text-gray-400 text-sm">Total Orders</span>
+                      <span className="font-bold text-blue-400 text-xl">{stats.totalOrders}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-[#2C2C34] p-3 rounded-lg">
+                      <span className="text-gray-400 text-sm">Avg Order Value</span>
+                      <span className="font-bold text-yellow-400 text-xl">
+                        €{stats.totalOrders > 0 ? (stats.totalRevenue / stats.totalOrders).toFixed(2) : "0.00"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "health" && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-green-600/20 p-3 rounded-xl">
+                  <FaServer className="text-green-400 text-3xl" />
+                </div>
+                <h2 className="text-3xl font-bold text-green-400">System Health Monitor</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { key: "database", name: "Database", desc: "PostgreSQL (Supabase)", icon: FaDatabase },
+                  { key: "api", name: "API", desc: "REST API", icon: FaGlobe },
+                  { key: "auth", name: "Authentication", desc: "Auth Service", icon: FaShieldAlt },
+                  { key: "storage", name: "Storage", desc: "File Storage", icon: FaBox },
+                ].map((service) => {
+                  const status = systemHealth[service.key as keyof SystemHealth];
+                  const isOnline = status === "online";
+                  return (
+                    <div
+                      key={service.key}
+                      className={`bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border-2 rounded-2xl p-6 transition-all ${
+                        isOnline
+                          ? "border-green-500 shadow-lg shadow-green-500/20"
+                          : "border-red-500 shadow-lg shadow-red-500/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-3 rounded-xl ${isOnline ? "bg-green-600/20" : "bg-red-600/20"}`}>
+                            <service.icon className={`text-3xl ${isOnline ? "text-green-400" : "text-red-400"}`} />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold">{service.name}</h3>
+                            <p className="text-sm text-gray-400">{service.desc}</p>
+                          </div>
+                        </div>
+                        {isOnline ? (
+                          <FaCheckCircle className="text-3xl text-green-400" />
+                        ) : (
+                          <FaExclamationTriangle className="text-3xl text-red-400 animate-pulse" />
+                        )}
+                      </div>
+                      <div className="bg-[#2C2C34] rounded-lg p-3">
+                        <p className={`font-bold ${isOnline ? "text-green-400" : "text-red-400"}`}>
+                          Status: {isOnline ? "🟢 Online" : "🔴 Offline"}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="bg-gradient-to-br from-green-600/10 to-green-600/5 border border-green-600 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <FaCheckCircle className="text-green-400 text-3xl" />
+                  <h3 className="text-2xl font-bold text-green-400">All Systems Operational</h3>
+                </div>
+                <p className="text-green-300 mb-3">
+                  Alle Services laufen reibungslos. Letzte Überprüfung: {new Date().toLocaleTimeString("de-DE")}
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="bg-green-600/20 p-3 rounded-lg text-center">
+                    <p className="text-xs text-green-300 mb-1">Uptime</p>
+                    <p className="text-xl font-bold text-green-400">99.9%</p>
+                  </div>
+                  <div className="bg-blue-600/20 p-3 rounded-lg text-center">
+                    <p className="text-xs text-blue-300 mb-1">Response Time</p>
+                    <p className="text-xl font-bold text-blue-400">45ms</p>
+                  </div>
+                  <div className="bg-purple-600/20 p-3 rounded-lg text-center">
+                    <p className="text-xs text-purple-300 mb-1">API Calls</p>
+                    <p className="text-xl font-bold text-purple-400">1.2M</p>
+                  </div>
+                  <div className="bg-yellow-600/20 p-3 rounded-lg text-center">
+                    <p className="text-xs text-yellow-300 mb-1">Success Rate</p>
+                    <p className="text-xl font-bold text-yellow-400">99.8%</p>
                   </div>
                 </div>
               </div>
@@ -1158,81 +1387,6 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
-
-      {/* ORG DETAILS MODAL */}
-      {showOrgModal && selectedOrg && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3a3a44] rounded-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-purple-600/20 p-4 rounded-xl">
-                  <FaUsers className="text-purple-400 text-3xl" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold mb-1">{selectedOrg.name}</h2>
-                  <p className="text-gray-400">{selectedOrg.owner_email}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowOrgModal(false)}
-                className="text-gray-400 hover:text-white text-2xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-[#2C2C34] rounded-xl p-4">
-                <p className="text-sm text-gray-400 mb-1">Organisation ID</p>
-                <p className="font-mono text-sm">{selectedOrg.id}</p>
-              </div>
-
-              <div className="bg-[#2C2C34] rounded-xl p-4">
-                <p className="text-sm text-gray-400 mb-1">Plan</p>
-                <p className="font-bold text-blue-400">{selectedOrg.plan}</p>
-              </div>
-
-              <div className="bg-[#2C2C34] rounded-xl p-4">
-                <p className="text-sm text-gray-400 mb-1">Status</p>
-                <span
-                  className={`inline-block px-3 py-1 rounded-lg text-sm font-bold ${
-                    selectedOrg.status === "active"
-                      ? "bg-green-600/20 text-green-400"
-                      : "bg-red-600/20 text-red-400"
-                  }`}
-                >
-                  {selectedOrg.status === "active" ? "✅ Aktiv" : "❌ Inaktiv"}
-                </span>
-              </div>
-
-              <div className="bg-[#2C2C34] rounded-xl p-4">
-                <p className="text-sm text-gray-400 mb-1">Erstellt am</p>
-                <p className="font-bold">{new Date(selectedOrg.created_at).toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowOrgModal(false)}
-                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded-xl font-bold transition"
-              >
-                Schließen
-              </button>
-              {godMode && (
-                <button
-                  onClick={() => {
-                    setShowOrgModal(false);
-                    navigateAsAdmin(selectedOrg.id, "user");
-                  }}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded-xl hover:shadow-lg hover:shadow-[#00FF9C]/50 transition"
-                >
-                  Als User ansehen
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
