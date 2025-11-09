@@ -61,7 +61,8 @@ import Products from "./pages/Products";
 import Activations from "./pages/Activations";
 import CustomerPortal from "./pages/CustomerPortal";
 import CreateLicense from "./pages/CreateLicense";
-import Licenses from "./pages/Licenses"; // ✅ NEU: Licenses Import hinzugefügt!
+import Licenses from "./pages/Licenses";
+import ProfileSettings from "./pages/ProfileSettings";
 
 // ===== LICENSE AUTH STATE =====
 interface LicenseAuthState {
@@ -234,6 +235,14 @@ export default function App() {
         {/* ===== DEVELOPER PROTECTED ROUTES ===== */}
         <Route
           path="/dev-dashboard"
+          element={
+            <ProtectedRoute>
+              <DeveloperDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/developer-dashboard"
           element={
             <ProtectedRoute>
               <DeveloperDashboard />
@@ -444,6 +453,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile-settings"
+          element={
+            <ProtectedRoute>
+              <ProfileSettings />
             </ProtectedRoute>
           }
         />

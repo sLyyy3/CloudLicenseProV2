@@ -1,5 +1,5 @@
-// src/components/Sidebar.tsx - HARMONISCH MIT DASHBOARD DESIGN
-import { useState } from "react";
+// src/components/Sidebar.tsx - DYNAMISCHE SIDEBAR MIT ROLLE & PROFIL
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import {
@@ -13,45 +13,133 @@ import {
   FaUser,
   FaCog,
   FaSignOutAlt,
+  FaChartBar,
+  FaStore,
 } from "react-icons/fa";
+
+type UserRole = "developer" | "reseller" | "customer" | null;
 
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [expanded, setExpanded] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    async function detectUserRole() {
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (data.user) {
+          const metadata = data.user.user_metadata as any;
+          setUserEmail(data.user.email || "");
+          setUserName(metadata?.name || data.user.email?.split("@")[0] || "User");
+
+          if (metadata?.is_developer) {
+            setUserRole("developer");
+          } else if (metadata?.is_reseller) {
+            setUserRole("reseller");
+          } else {
+            setUserRole("customer");
+          }
+        }
+      } catch (err) {
+        console.error("Error detecting user role:", err);
+      }
+    }
+
+    detectUserRole();
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/login");
+    if (userRole === "developer") {
+      navigate("/dev-login");
+    } else if (userRole === "reseller") {
+      navigate("/reseller-login");
+    } else {
+      navigate("/login");
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
 
-  const menuItems = [
+  // DEVELOPER MENU ITEMS
+  const developerMenuItems = [
     {
-      category: "RESELLER",
+      category: "HAUPT",
       items: [
-        { label: "Dashboard", path: "/reseller-dashboard", icon: FaHome },
-        { label: "Marktplatz", path: "/reseller-marketplace", icon: FaBox },
-        { label: "Lager", path: "/reseller-inventory", icon: FaGem },
-        { label: "Key Verteilung", path: "/reseller-sales", icon: FaKey, badge: "LIVE" },
-        { label: "Developer", path: "/reseller-developers", icon: FaUsers },
-        { label: "Analytics", path: "/reseller-analytics", icon: FaRocket },
-     // ↑ quote hinzugefügt
+        { label: "Dashboard", path: "/developer-dashboard", icon: FaHome },
+        { label: "Produkte", path: "/dev-products", icon: FaBox },
+        { label: "Lizenzen", path: "/dev-licenses", icon: FaKey },
       ],
     },
     {
-      category: "SYSTEM",
+      category: "VERWALTUNG",
       items: [
-        { label: "Dashboard", path: "/dashboard", icon: FaHome },
-        { label: "Lizenzen", path: "/licenses", icon: FaKey },
-        { label: "Kunden", path: "/customers", icon: FaUsers },
-        { label: "Produkte", path: "/products", icon: FaBox },
-        { label: "Aktivierungen", path: "/activations", icon: FaRocket },
-        { label: "Analytics", path: "/analytics", icon: FaCog },
+        { label: "Reseller", path: "/dev-resellers", icon: FaUsers },
+        { label: "Analytics", path: "/dev-analytics", icon: FaChartBar },
+      ],
+    },
+    {
+      category: "PROFIL",
+      items: [
+        { label: "Einstellungen", path: "/profile-settings", icon: FaCog },
       ],
     },
   ];
+
+  // RESELLER MENU ITEMS
+  const resellerMenuItems = [
+    {
+      category: "HAUPT",
+      items: [
+        { label: "Dashboard", path: "/reseller-dashboard", icon: FaHome },
+        { label: "Marktplatz", path: "/reseller-marketplace", icon: FaStore },
+        { label: "Lager", path: "/reseller-inventory", icon: FaGem },
+      ],
+    },
+    {
+      category: "VERKAUF",
+      items: [
+        { label: "Key Verteilung", path: "/reseller-sales", icon: FaKey, badge: "LIVE" },
+        { label: "Developer", path: "/reseller-developers", icon: FaUsers },
+        { label: "Analytics", path: "/reseller-analytics", icon: FaChartBar },
+      ],
+    },
+    {
+      category: "PROFIL",
+      items: [
+        { label: "Einstellungen", path: "/profile-settings", icon: FaCog },
+      ],
+    },
+  ];
+
+  // CUSTOMER MENU ITEMS (Default)
+  const customerMenuItems = [
+    {
+      category: "HAUPT",
+      items: [
+        { label: "Dashboard", path: "/dashboard", icon: FaHome },
+        { label: "Meine Keys", path: "/licenses", icon: FaKey },
+      ],
+    },
+    {
+      category: "PROFIL",
+      items: [
+        { label: "Einstellungen", path: "/profile-settings", icon: FaCog },
+      ],
+    },
+  ];
+
+  // Select menu items based on user role
+  let menuItems = customerMenuItems;
+  if (userRole === "developer") {
+    menuItems = developerMenuItems;
+  } else if (userRole === "reseller") {
+    menuItems = resellerMenuItems;
+  }
 
   return (
     <aside
@@ -117,7 +205,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom Section */}
+      {/* Bottom Section - Dynamic User Info */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#1a1a24] bg-[#0F0F14]">
         {expanded && (
           <div className="mb-4 p-3 rounded-lg bg-[#1a1a24] border border-[#00FF9C]/20">
@@ -126,8 +214,12 @@ export default function Sidebar() {
                 <FaUser className="text-[#0F0F14] text-xs font-bold" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-white truncate">Reseller</p>
-                <p className="text-xs text-[#00FF9C] truncate">Premium</p>
+                <p className="text-xs font-bold text-white truncate">{userName}</p>
+                <p className="text-xs text-[#00FF9C] truncate">
+                  {userRole === "developer" && "👨‍💻 Developer"}
+                  {userRole === "reseller" && "💼 Reseller"}
+                  {userRole === "customer" && "👤 Kunde"}
+                </p>
               </div>
             </div>
           </div>
