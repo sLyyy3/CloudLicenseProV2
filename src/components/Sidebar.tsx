@@ -123,7 +123,7 @@ export default function Sidebar() {
       items: [
         { label: "Dashboard", path: "/customer-dashboard", icon: FaHome },
         { label: "Meine Keys", path: "/licenses", icon: FaKey },
-        { label: "Shop", path: "/shop", icon: FaShoppingCart },
+        { label: "Reseller Shops", path: "/reseller-shops", icon: FaStore },
       ],
     },
     {
