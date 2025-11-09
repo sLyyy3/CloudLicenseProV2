@@ -1,16 +1,19 @@
+// src/pages/DeveloperDashboard.tsx - REDESIGNED: Developer Dashboard mit neuem Design
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import {
   FaRocket,
-  FaArrowLeft,
   FaSignOutAlt,
   FaBox,
   FaKey,
   FaUsers,
   FaChartBar,
+  FaFire,
+  FaLightbulb,
 } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
+import Sidebar from "../components/Sidebar";
 
 type DeveloperInfo = {
   id: string;
@@ -93,8 +96,6 @@ export default function DeveloperDashboard() {
       if (orgData) {
         console.log("✅ Organization loaded:", orgData.name);
         setDeveloper(orgData as DeveloperInfo);
-      } else {
-        console.warn("⚠️ Organization not found");
       }
 
       const { data: productsData, error: productsError } = await supabase
@@ -154,7 +155,7 @@ export default function DeveloperDashboard() {
       <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0] flex items-center justify-center">
         <div className="text-center">
           <div className="mb-4 text-3xl animate-spin">⏳</div>
-          <p className="text-lg">Lädt Dashboard...</p>
+          <p className="text-lg">Lädt Developer Dashboard...</p>
         </div>
       </div>
     );
@@ -165,163 +166,181 @@ export default function DeveloperDashboard() {
       {DialogComponent}
 
       <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0]">
-        <div className="bg-[#1A1A1F] border-b border-[#2C2C34] p-6 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
-            
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center gap-2 px-3 py-2 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-lg text-gray-400 hover:text-purple-400 transition"
-                title="Zurück zur Landing Page"
-              >
-                <FaArrowLeft /> Home
-              </button>
+        <Sidebar />
 
-              <div className="border-l border-[#3C3C44] pl-4">
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                  <FaRocket className="text-purple-400" />
-                  Developer Dashboard
-                </h1>
-                <p className="text-gray-400 mt-1">
+        {/* HEADER */}
+        <div className="ml-0 md:ml-64 bg-gradient-to-r from-[#1A1A1F] via-[#2C2C34] to-[#1A1A1F] border-b border-purple-500/20 p-6 sticky top-0 z-40 shadow-lg shadow-purple-500/10">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-500/20 rounded-lg">
+                <FaRocket className="text-purple-400 text-3xl" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">Developer Dashboard</h1>
+                <p className="text-gray-400 text-sm">
                   {developer?.name || "Loading..."} • Plan: <strong>{developer?.plan || "N/A"}</strong>
                 </p>
               </div>
             </div>
 
-            <div className="flex gap-3 flex-wrap justify-end">
-              <button
-                onClick={() => navigate("/dev-products")}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold flex items-center gap-2 transition"
-              >
-                <FaBox /> Produkte
-              </button>
-              <button
-                onClick={() => navigate("/dev-licenses")}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-bold flex items-center gap-2 transition"
-              >
-                <FaKey /> Lizenzen
-              </button>
-              <button
-                onClick={() => navigate("/dev-resellers")}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold flex items-center gap-2 transition"
-              >
-                <FaUsers /> Reseller
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold flex items-center gap-2 transition"
-              >
-                <FaSignOutAlt /> Logout
-              </button>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold flex items-center gap-2 transition"
+            >
+              <FaSignOutAlt /> Logout
+            </button>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto p-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-blue-400 transition">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">Produkte</p>
-                <FaBox className="text-blue-400 text-2xl" />
+        <div className="ml-0 md:ml-64 p-6">
+          <div className="max-w-7xl mx-auto">
+            {/* MAIN STATS */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              {/* Produkte */}
+              <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-blue-500/20 rounded-lg p-6 hover:border-blue-500/50 transition shadow-lg hover:shadow-blue-500/10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-400 text-sm">📦 Produkte</p>
+                  <FaBox className="text-blue-400 text-2xl" />
+                </div>
+                <p className="text-4xl font-bold text-blue-400">{stats.totalProducts}</p>
+                <p className="text-xs text-gray-500 mt-2">erstellt</p>
               </div>
-              <p className="text-4xl font-bold text-blue-400">
-                {stats.totalProducts}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">erstellt</p>
+
+              {/* Lizenzen */}
+              <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-500/20 rounded-lg p-6 hover:border-green-500/50 transition shadow-lg hover:shadow-green-500/10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-400 text-sm">🔑 Lizenzen</p>
+                  <FaKey className="text-green-400 text-2xl" />
+                </div>
+                <p className="text-4xl font-bold text-green-400">{stats.totalLicenses}</p>
+                <p className="text-xs text-gray-500 mt-2">gesamt</p>
+              </div>
+
+              {/* Reseller */}
+              <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-purple-500/20 rounded-lg p-6 hover:border-purple-500/50 transition shadow-lg hover:shadow-purple-500/10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-400 text-sm">👥 Reseller</p>
+                  <FaUsers className="text-purple-400 text-2xl" />
+                </div>
+                <p className="text-4xl font-bold text-purple-400">{stats.activeResellers}</p>
+                <p className="text-xs text-gray-500 mt-2">aktiv ({stats.totalResellers} gesamt)</p>
+              </div>
+
+              {/* Plan */}
+              <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-yellow-500/20 rounded-lg p-6 hover:border-yellow-500/50 transition shadow-lg hover:shadow-yellow-500/10">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-400 text-sm">🎯 Plan</p>
+                  <FaChartBar className="text-yellow-400 text-2xl" />
+                </div>
+                <p className="text-2xl font-bold text-yellow-400">
+                  {developer?.plan || "N/A"}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">aktueller Plan</p>
+              </div>
             </div>
 
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-green-400 transition">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">Lizenzen</p>
-                <FaKey className="text-green-400 text-2xl" />
+            {/* QUICK ACTIONS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* Produkte */}
+              <div
+                onClick={() => navigate("/dev-products")}
+                className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-blue-600/30 rounded-lg p-8 hover:border-blue-600/80 hover:shadow-lg hover:shadow-blue-600/20 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <FaBox className="text-4xl text-blue-400" />
+                  <h3 className="text-2xl font-bold">Produkte</h3>
+                </div>
+                <p className="text-gray-400 mb-6">Erstelle und verwalte deine Produkte</p>
+                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded font-bold transition w-full">
+                  Verwalten →
+                </button>
               </div>
-              <p className="text-4xl font-bold text-green-400">
-                {stats.totalLicenses}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">gesamt</p>
+
+              {/* Lizenzen */}
+              <div
+                onClick={() => navigate("/dev-licenses")}
+                className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-600/30 rounded-lg p-8 hover:border-green-600/80 hover:shadow-lg hover:shadow-green-600/20 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <FaKey className="text-4xl text-green-400" />
+                  <h3 className="text-2xl font-bold">Lizenzen</h3>
+                </div>
+                <p className="text-gray-400 mb-6">Erstelle und verwalte deine Lizenzen</p>
+                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-bold transition w-full">
+                  Verwalten →
+                </button>
+              </div>
+
+              {/* Reseller */}
+              <div
+                onClick={() => navigate("/dev-resellers")}
+                className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-purple-600/30 rounded-lg p-8 hover:border-purple-600/80 hover:shadow-lg hover:shadow-purple-600/20 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <FaUsers className="text-4xl text-purple-400" />
+                  <h3 className="text-2xl font-bold">Reseller</h3>
+                </div>
+                <p className="text-gray-400 mb-6">Verwalte deine Reseller und deren Anfragen</p>
+                <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded font-bold transition w-full">
+                  Ansehen →
+                </button>
+              </div>
             </div>
 
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-purple-400 transition">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">Reseller</p>
-                <FaUsers className="text-purple-400 text-2xl" />
-              </div>
-              <p className="text-4xl font-bold text-purple-400">
-                {stats.activeResellers}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">aktiv ({stats.totalResellers} gesamt)</p>
-            </div>
-
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-yellow-400 transition">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">Plan</p>
-                <FaChartBar className="text-yellow-400 text-2xl" />
-              </div>
-              <p className="text-2xl font-bold text-yellow-400">
-                {developer?.plan || "N/A"}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">aktueller Plan</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div
-              onClick={() => navigate("/dev-products")}
-              className="bg-[#1A1A1F] border border-blue-600 rounded-lg p-8 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition cursor-pointer"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <FaBox className="text-3xl text-blue-400" />
-                <h3 className="text-2xl font-bold">Produkte</h3>
-              </div>
-              <p className="text-gray-400 mb-4">
-                Erstelle und verwalte deine Produkte
-              </p>
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded font-bold">
-                Verwalten →
+            {/* QUICK NAVIGATION */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <button
+                onClick={() => navigate("/dev-products")}
+                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-blue-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
+              >
+                <FaBox className="text-blue-400" /> Produkte
+              </button>
+              <button
+                onClick={() => navigate("/dev-licenses")}
+                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-green-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
+              >
+                <FaKey className="text-green-400" /> Lizenzen
+              </button>
+              <button
+                onClick={() => navigate("/dev-resellers")}
+                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-purple-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
+              >
+                <FaUsers className="text-purple-400" /> Reseller
+              </button>
+              <button
+                onClick={() => navigate("/dev-analytics")}
+                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-yellow-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
+              >
+                <FaChartBar className="text-yellow-400" /> Analytics
               </button>
             </div>
 
-            <div
-              onClick={() => navigate("/dev-licenses")}
-              className="bg-[#1A1A1F] border border-green-600 rounded-lg p-8 hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] transition cursor-pointer"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <FaKey className="text-3xl text-green-400" />
-                <h3 className="text-2xl font-bold">Lizenzen</h3>
+            {/* INFO BOXES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/50 rounded-lg p-6">
+                <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">
+                  <FaFire /> Schnellstart
+                </h3>
+                <ol className="text-sm text-blue-300 space-y-2 text-xs">
+                  <li>1️⃣ Gehe zu <strong>Produkte</strong> und erstelle dein erstes Produkt</li>
+                  <li>2️⃣ Gehe zu <strong>Lizenzen</strong> und erstelle Lizenzen</li>
+                  <li>3️⃣ Gehe zu <strong>Reseller</strong> um Anfragen zu verwalten</li>
+                  <li>4️⃣ Überwache alles in deinem Dashboard</li>
+                </ol>
               </div>
-              <p className="text-gray-400 mb-4">
-                Erstelle und verwalte deine Lizenzen
-              </p>
-              <button className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-bold">
-                Verwalten →
-              </button>
-            </div>
 
-            <div
-              onClick={() => navigate("/dev-resellers")}
-              className="bg-[#1A1A1F] border border-purple-600 rounded-lg p-8 hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] transition cursor-pointer"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <FaUsers className="text-3xl text-purple-400" />
-                <h3 className="text-2xl font-bold">Reseller</h3>
+              <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/50 rounded-lg p-6">
+                <h3 className="font-bold text-green-400 mb-3 flex items-center gap-2">
+                  <FaLightbulb /> Pro-Tipps
+                </h3>
+                <ul className="text-sm text-green-300 space-y-2 text-xs">
+                  <li>✅ Mehrere Produkte = mehr Umsatz</li>
+                  <li>✅ Reseller sind dein Vertriebskanal</li>
+                  <li>✅ Kommuniziere mit deinen Resellern</li>
+                  <li>✅ Überwache Analytics regelmäßig</li>
+                </ul>
               </div>
-              <p className="text-gray-400 mb-4">
-                Verwalte deine Reseller und deren Anfragen
-              </p>
-              <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded font-bold">
-                Ansehen →
-              </button>
             </div>
-          </div>
-
-          <div className="bg-blue-600/20 border border-blue-600 rounded-lg p-6">
-            <h3 className="font-bold text-blue-400 mb-3">🚀 Schnellstart</h3>
-            <ol className="text-sm text-blue-300 space-y-2">
-              <li>1. 📦 Gehe zu <strong>Produkte</strong> und erstelle dein erstes Produkt</li>
-              <li>2. 🔑 Gehe zu <strong>Lizenzen</strong> und erstelle Lizenzen</li>
-              <li>3. 🤝 Gehe zu <strong>Reseller</strong> um Anfragen zu verwalten</li>
-              <li>4. 📊 Überwache alles in deinem Dashboard</li>
-            </ol>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-// src/App.tsx - COMPLETE WITH LICENSE VALIDATION + ALL ROUTES
+// src/App.tsx - FIXED: Licenses Route zeigt jetzt Licenses statt Dashboard
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -42,6 +42,7 @@ import ResellerMarketplace from "./pages/ResellerMarketplace";
 import ResellerInventory from "./pages/ResellerInventory";
 import ResellerDevelopers from "./pages/ResellerDevelopers";
 import ResellerAnalytics from "./pages/ResellerAnalytics";
+import ResellerSales from "./pages/ResellerSales";
 
 // ===== ADMIN PAGES =====
 import AdminDashboard from "./pages/AdminDashboard";
@@ -60,6 +61,7 @@ import Products from "./pages/Products";
 import Activations from "./pages/Activations";
 import CustomerPortal from "./pages/CustomerPortal";
 import CreateLicense from "./pages/CreateLicense";
+import Licenses from "./pages/Licenses"; // ✅ NEU: Licenses Import hinzugefügt!
 
 // ===== LICENSE AUTH STATE =====
 interface LicenseAuthState {
@@ -101,7 +103,7 @@ export default function App() {
       }
 
       if (licenseKey) {
-        console.log("🔍 License key found, validating...");
+        console.log("🔐 License key found, validating...");
 
         try {
           const result = await validateLicense(licenseKey);
@@ -184,7 +186,7 @@ export default function App() {
       <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0] flex items-center justify-center">
         <div className="text-center">
           <div className="mb-4">
-            <div className="inline-block animate-spin">⏳</div>
+            <div className="inline-block animate-spin text-2xl">⏳</div>
           </div>
           <p className="text-lg">🔄 Initializing...</p>
         </div>
@@ -333,6 +335,14 @@ export default function App() {
           }
         />
         <Route
+          path="/reseller-sales"
+          element={
+            <ProtectedRoute>
+              <ResellerSales />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/reseller-developers"
           element={
             <ProtectedRoute>
@@ -386,14 +396,17 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* ✅ FIXED: /licenses Route jetzt mit Licenses Komponente statt Dashboard! */}
         <Route
           path="/licenses"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <Licenses />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/customers"
           element={

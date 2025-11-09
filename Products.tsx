@@ -29,71 +29,47 @@ export default function Products() {
   useEffect(() => {
     async function init() {
       try {
-        console.log("🔄 Initializing Products page...");
-
         const { data: authData, error: authError } = await supabase.auth.getUser();
-
         if (authError || !authData.user) {
-          console.error("❌ Auth Error:", authError);
           openDialog({
             type: "error",
             title: "❌ Authentifizierung erforderlich",
-            message: "Bitte melde dich an um Produkte zu verwalten",
+            message: "Bitte melde dich an, um Produkte zu verwalten.",
             closeButton: "OK",
           });
           return;
         }
 
-        console.log("✅ User authenticated:", authData.user.id);
-
         const orgId = (authData.user?.user_metadata as any)?.organization_id;
-        console.log("📋 Organization ID from metadata:", orgId);
-
         if (!orgId) {
-          console.error("❌ No organization_id in metadata");
           openDialog({
             type: "error",
             title: "❌ Organisation fehlt",
-            message: "Deine Organisation konnte nicht gefunden werden. Bitte melde dich ab und erneut an.",
+            message: "Bitte melde dich erneut an.",
             closeButton: "OK",
           });
           return;
         }
 
-        console.log("🔍 Verifying organization in database...");
         const { data: orgData, error: orgError } = await supabase
           .from("organizations")
           .select("id, name")
           .eq("id", orgId)
           .maybeSingle();
 
-        if (orgError) {
-          console.error("❌ Database Error:", orgError);
-          openDialog({
-            type: "error",
-            title: "❌ Datenbankfehler",
-            message: `Fehler beim Prüfen der Organisation: ${orgError.message}`,
-            closeButton: "OK",
-          });
-          return;
-        }
-
-        if (!orgData) {
-          console.error("❌ Organization not found in database for ID:", orgId);
+        if (orgError || !orgData) {
           openDialog({
             type: "error",
             title: "❌ Organisation nicht gefunden",
-            message: `Die Organisation ${orgId} existiert nicht in der Datenbank. Bitte kontaktiere den Support oder melde dich neu an.`,
+            message: "Fehler beim Abrufen der Organisation.",
             closeButton: "OK",
           });
           return;
         }
 
-        console.log("✅ Organization verified:", orgData.name);
         setOrganizationId(orgId);
         await loadData(orgId);
       } catch (err) {
-        console.error("❌ Init Error:", err);
         openDialog({
           type: "error",
           title: "❌ Fehler beim Laden",
@@ -108,23 +84,16 @@ export default function Products() {
   async function loadData(orgId: string) {
     setLoading(true);
     try {
-      console.log("📦 Loading products for org:", orgId);
-
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("❌ Error loading products:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("✅ Loaded products:", data?.length || 0);
-      
-      const totalActive = (data || []).filter(p => p.status === "active").length;
-      
+      const totalActive = (data || []).filter((p) => p.status === "active").length;
+
       setProducts(data || []);
       setStats({
         total: data?.length || 0,
@@ -132,7 +101,6 @@ export default function Products() {
         totalRevenue: 0,
       });
     } catch (err) {
-      console.error("Error loading products:", err);
       openDialog({
         type: "error",
         title: "❌ Fehler",
@@ -176,22 +144,18 @@ export default function Products() {
     }
 
     try {
-      console.log("📝 Creating product:", { name: newProduct.name, base_price: basePrice, organization_id: organizationId });
+      const { data, error } = await supabase
+        .from("products")
+        .insert({
+          name: newProduct.name,
+          description: newProduct.description || "",
+          base_price: basePrice,
+          organization_id: organizationId,
+          status: newProduct.status,
+        })
+        .select();
 
-      const { data, error } = await supabase.from("products").insert({
-        name: newProduct.name,
-        description: newProduct.description || "",
-        base_price: basePrice,
-        organization_id: organizationId,
-        status: newProduct.status,
-      }).select();
-
-      if (error) {
-        console.error("❌ Insert error:", error);
-        throw error;
-      }
-
-      console.log("✅ Product created:", data);
+      if (error) throw error;
 
       openDialog({
         type: "success",
@@ -204,7 +168,6 @@ export default function Products() {
       setShowAddModal(false);
       if (organizationId) await loadData(organizationId);
     } catch (err: any) {
-      console.error("❌ Error:", err);
       openDialog({
         type: "error",
         title: "❌ Fehler beim Erstellen",
@@ -242,9 +205,9 @@ export default function Products() {
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0] min-h-screen flex items-center justify-center">
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0] min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="text-3xl mb-4">⏳</div>
             <p className="text-lg">Lädt Produkte...</p>
@@ -257,233 +220,127 @@ export default function Products() {
   return (
     <>
       {DialogComponent}
-
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
-
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0]">
-          <div className="border-b border-[#2C2C34] p-8 bg-gradient-to-r from-[#1A1A1F] to-[#0E0E12]">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-4xl font-extrabold flex items-center gap-2">
-                  <FaBox className="text-[#00FF9C]" />
-                  Produkte
-                </h1>
-                <p className="text-gray-400 mt-2">
-                  Verwalte alle deine Produkte und Preise
-                </p>
-              </div>
-
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0] p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <FaBox /> Produkte ({stats.total})
+            </h1>
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-6 py-3 bg-[#00FF9C] text-[#0E0E12] rounded-lg font-bold hover:bg-[#00cc80] transition flex items-center gap-2 shadow-lg"
+                className="px-4 py-2 bg-[#00FF9C] text-black font-semibold rounded hover:bg-[#00cc80] transition"
               >
-                <FaPlus /> Neues Produkt
+                <FaPlus className="inline mr-2" /> Neu
               </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4 hover:border-[#00FF9C] transition">
-                <p className="text-gray-400 text-sm">Gesamt Produkte</p>
-                <p className="text-3xl font-bold text-[#00FF9C]">{stats.total}</p>
-              </div>
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4 hover:border-green-400 transition">
-                <p className="text-gray-400 text-sm">Aktive Produkte</p>
-                <p className="text-3xl font-bold text-green-400">{stats.active}</p>
-              </div>
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4 hover:border-blue-400 transition">
-                <p className="text-gray-400 text-sm">Ø Preis</p>
-                <p className="text-3xl font-bold text-blue-400">
-                  €{products.length > 0 ? (products.reduce((s, p) => s + p.base_price, 0) / products.length).toFixed(2) : "0.00"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-b border-[#2C2C34] p-8">
-            <div className="flex gap-4 flex-wrap items-end">
-              <div className="flex-1 min-w-64">
-                <label className="block text-sm text-gray-400 mb-2">🔍 Suche</label>
-                <div className="relative">
-                  <FaSearch className="absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Produktname..."
-                    value={filters.searchQuery || ""}
-                    onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {filters.searchQuery && (
-                <button
-                  onClick={() => setFilters({})}
-                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition text-sm font-bold"
-                >
-                  Clear
-                </button>
-              )}
-
               <button
-                onClick={() => exportToCSV(filtered, "products_export.csv")}
-                disabled={filtered.length === 0}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm font-bold disabled:opacity-50 flex items-center gap-2 transition"
+                onClick={() => exportToCSV(products, "products_export.csv")}
+                className="px-4 py-2 bg-[#2a2a34] border border-[#3a3a44] rounded hover:bg-[#3a3a44] transition"
               >
-                <FaDownload /> Export
+                <FaDownload className="inline mr-2" /> Export
               </button>
             </div>
-
-            <div className="text-sm text-gray-400 mt-4">
-              Zeige {pagination.currentItems.length} von {filtered.length} Produkte
-            </div>
           </div>
 
-          <div className="p-8">
-            {pagination.currentItems.length === 0 ? (
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-12 text-center text-gray-400">
-                <FaBox className="text-4xl mx-auto mb-4 opacity-30" />
-                <p className="text-lg font-semibold mb-2">Keine Produkte gefunden</p>
-                <p className="text-sm">Erstelle dein erstes Produkt um zu beginnen</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pagination.currentItems.map((product) => (
-                  <div
-                    key={product.id}
-                    className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:bg-[#2C2C34] hover:border-[#00FF9C] transition group"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-lg bg-[#00FF9C]/20 flex items-center justify-center group-hover:bg-[#00FF9C]/30 transition">
-                        <FaBox className="text-[#00FF9C] text-lg" />
-                      </div>
-                    </div>
+          {/* Suchleiste */}
+          <div className="flex items-center mb-6 bg-[#1a1a24] p-3 rounded-xl border border-[#2a2a34]">
+            <FaSearch className="text-[#a0a0a8] mr-3" />
+            <input
+              type="text"
+              placeholder="Produkte durchsuchen..."
+              value={filters.search || ""}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="flex-1 bg-transparent outline-none text-[#E0E0E0]"
+            />
+          </div>
 
-                    <p className="font-semibold text-lg mb-1">{product.name}</p>
-                    {product.description && (
-                      <p className="text-xs text-gray-400 mb-2 line-clamp-2">{product.description}</p>
-                    )}
-                    <p className="text-sm text-[#00FF9C] font-bold mb-2">
-                      €{product.base_price.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-gray-500 mb-4">
-                      Erstellt: {new Date(product.created_at).toLocaleDateString("de-DE")}
-                    </p>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(product.id);
-                          alert("✅ Produkt ID kopiert!");
-                        }}
-                        className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-xs font-bold transition"
-                      >
-                        📋 ID
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProduct(product.id)}
-                        className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-bold transition"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <button
-                  onClick={pagination.prevPage}
-                  disabled={!pagination.hasPrevPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3C3C44] transition"
-                >
-                  Previous
-                </button>
-
-                <div className="flex gap-1">
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => pagination.goToPage(page)}
-                      className={`w-10 h-10 rounded font-bold transition ${
-                        page === pagination.currentPage
-                          ? "bg-[#00FF9C] text-black"
-                          : "bg-[#2C2C34] hover:bg-[#3C3C44]"
-                      }`}
-                    >
-                      {page}
-                    </button>
+          {/* Produktliste */}
+          {filtered.length === 0 ? (
+            <p className="text-center text-gray-400 mt-20">Keine Produkte gefunden.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="text-left border-b border-[#2a2a34] text-[#a0a0a8]">
+                    <th className="p-3">Name</th>
+                    <th className="p-3">Beschreibung</th>
+                    <th className="p-3">Preis (€)</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagination.currentItems.map((product) => (
+                    <tr key={product.id} className="border-b border-[#2a2a34] hover:bg-[#1a1a24] transition">
+                      <td className="p-3 font-medium">{product.name}</td>
+                      <td className="p-3 text-gray-400">{product.description || "–"}</td>
+                      <td className="p-3">{product.base_price.toFixed(2)}</td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2 py-1 rounded text-xs ${
+                            product.status === "active" ? "bg-green-700/30 text-green-400" : "bg-red-700/30 text-red-400"
+                          }`}
+                        >
+                          {product.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="text-red-400 hover:text-red-600 transition"
+                        >
+                          <FaTrash />
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-
-                <button
-                  onClick={pagination.nextPage}
-                  disabled={!pagination.hasNextPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3C3C44] transition"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </div>
+                </tbody>
+              </table>
+            </div>
+          )}
         </main>
       </div>
 
+      {/* Modal bleibt gleich */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-6 w-full max-w-md shadow-2xl">
+          <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <FaPlus className="text-[#00FF9C]" /> Neues Produkt
             </h2>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">📦 Produktname</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">📦 Produktname</label>
                 <input
                   type="text"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                   placeholder="z.B. CloudSync Pro"
-                  className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
+                  className="w-full p-3 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">📝 Beschreibung (optional)</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">📝 Beschreibung</label>
                 <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  placeholder="z.B. Professionelle Cloud-Lösung"
-                  rows={3}
-                  className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition resize-none"
+                  placeholder="Kurze Beschreibung..."
+                  className="w-full p-3 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">💰 Basis-Preis (€)</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">💶 Preis</label>
                 <input
                   type="number"
                   value={newProduct.base_price}
                   onChange={(e) => setNewProduct({ ...newProduct, base_price: e.target.value })}
-                  placeholder="49.99"
-                  step="0.01"
-                  min="0"
-                  className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
+                  placeholder="z.B. 19.99"
+                  className="w-full p-3 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">🟢 Status</label>
-                <select
-                  value={newProduct.status}
-                  onChange={(e) => setNewProduct({ ...newProduct, status: e.target.value })}
-                  className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
-                >
-                  <option value="active">Aktiv</option>
-                  <option value="inactive">Inaktiv</option>
-                </select>
               </div>
             </div>
 

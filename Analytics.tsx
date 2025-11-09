@@ -100,18 +100,15 @@ export default function Analytics() {
     };
 
     licenses.forEach((license) => {
-      // Status counts
       licensesByStatus[license.status] =
         (licensesByStatus[license.status] || 0) + 1;
 
       if (license.status === "active") activeLicenses++;
       if (license.status === "expired") expiredLicenses++;
 
-      // Type counts
       const type = license.type || "single";
       licensesByType[type] = (licensesByType[type] || 0) + 1;
 
-      // Expiration dates
       if (license.expires_at) {
         const expiryDate = new Date(license.expires_at);
         const daysUntil = Math.ceil(
@@ -126,12 +123,10 @@ export default function Analytics() {
         }
       }
 
-      // Created dates
       const createdDate = new Date(license.created_at);
       if (createdDate >= thisMonthStart) createdThisMonth++;
       if (createdDate >= thisWeekStart) createdThisWeek++;
 
-      // Activation duration
       if (license.expires_at) {
         const createdTime = new Date(license.created_at).getTime();
         const expiryTime = new Date(license.expires_at).getTime();
@@ -158,9 +153,9 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0] min-h-screen flex items-center justify-center">
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0] min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="mb-4 text-2xl">📊</div>
             <p>Lädt Analytics...</p>
@@ -172,9 +167,9 @@ export default function Analytics() {
 
   if (!data) {
     return (
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0] p-8">
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0] p-8">
           <p>Keine Daten verfügbar</p>
         </main>
       </div>
@@ -186,68 +181,68 @@ export default function Analytics() {
   const expiredPercentage = ((data.expiredLicenses / data.totalLicenses) * 100).toFixed(1);
 
   return (
-    <div className="flex">
+    <div className="flex w-full min-h-screen bg-[#0F0F14]">
       <Sidebar />
 
-      <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0]">
+      <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0]">
         {/* HEADER */}
-        <div className="border-b border-[#2C2C34] p-8">
+        <div className="border-b border-[#2a2a34] p-8">
           <h1 className="text-4xl font-extrabold flex items-center gap-2 mb-2">
             <FaChartBar className="text-[#00FF9C]" />
             Analytics Dashboard
           </h1>
-          <p className="text-gray-400">Detaillierte Einblicke in deine Lizenzen</p>
+          <p className="text-[#a0a0a8]">Detaillierte Einblicke in deine Lizenzen</p>
         </div>
 
         <div className="p-8 space-y-8">
           {/* KEY METRICS ROW 1 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Licenses */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-[#00FF9C]/50 transition">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6 hover:border-[#00FF9C]/50 transition">
               <div className="flex items-center gap-2 mb-2">
                 <FaChartBar className="text-blue-400" />
-                <p className="text-gray-400 text-sm">Gesamt Lizenzen</p>
+                <p className="text-[#a0a0a8] text-sm">Gesamt Lizenzen</p>
               </div>
               <p className="text-4xl font-bold text-blue-400">{data.totalLicenses}</p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-[#a0a0a8] mt-2">
                 🎯 Alle deine lizenzierten Produkte
               </p>
             </div>
 
             {/* Active Licenses */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-green-500/50 transition">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6 hover:border-green-500/50 transition">
               <div className="flex items-center gap-2 mb-2">
                 <FaCheckCircle className="text-green-400" />
-                <p className="text-gray-400 text-sm">Aktive Lizenzen</p>
+                <p className="text-[#a0a0a8] text-sm">Aktive Lizenzen</p>
               </div>
               <p className="text-4xl font-bold text-green-400">{data.activeLicenses}</p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-[#a0a0a8] mt-2">
                 ✅ {activationPercentage}% von gesamt
               </p>
             </div>
 
             {/* Expiring Soon */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-[#FFCD3C]/50 transition">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6 hover:border-[#FFCD3C]/50 transition">
               <div className="flex items-center gap-2 mb-2">
                 <FaArrowDown className="text-[#FFCD3C]" />
-                <p className="text-gray-400 text-sm">Demnächst ablaufend</p>
+                <p className="text-[#a0a0a8] text-sm">Demnächst ablaufend</p>
               </div>
               <p className="text-4xl font-bold text-[#FFCD3C]">
                 {data.expiringIn30Days}
               </p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-[#a0a0a8] mt-2">
                 ⏰ In den nächsten 30 Tagen
               </p>
             </div>
 
             {/* Expired */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-red-500/50 transition">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6 hover:border-red-500/50 transition">
               <div className="flex items-center gap-2 mb-2">
                 <FaExclamationTriangle className="text-red-400" />
-                <p className="text-gray-400 text-sm">Abgelaufen</p>
+                <p className="text-[#a0a0a8] text-sm">Abgelaufen</p>
               </div>
               <p className="text-4xl font-bold text-red-400">{data.expiredLicenses}</p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-[#a0a0a8] mt-2">
                 ❌ {expiredPercentage}% von gesamt
               </p>
             </div>
@@ -256,51 +251,51 @@ export default function Analytics() {
           {/* KEY METRICS ROW 2 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Created This Month */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6">
               <div className="flex items-center gap-2 mb-2">
                 <FaCalendar className="text-purple-400" />
-                <p className="text-gray-400 text-sm">Diesen Monat erstellt</p>
+                <p className="text-[#a0a0a8] text-sm">Diesen Monat erstellt</p>
               </div>
               <p className="text-3xl font-bold text-purple-400">
                 {data.createdThisMonth}
               </p>
-              <div className="mt-4 flex items-center gap-1 text-xs text-gray-500">
+              <div className="mt-4 flex items-center gap-1 text-xs text-[#a0a0a8]">
                 <FaArrowUp className="text-green-400" />
                 Diese Woche: {data.createdThisWeek}
               </div>
             </div>
 
             {/* Expiring in 7 Days */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6">
               <div className="flex items-center gap-2 mb-2">
                 <FaExclamationTriangle className="text-orange-400" />
-                <p className="text-gray-400 text-sm">Ablaufen in 7 Tagen</p>
+                <p className="text-[#a0a0a8] text-sm">Ablaufen in 7 Tagen</p>
               </div>
               <p className="text-3xl font-bold text-orange-400">
                 {data.expiringIn7Days}
               </p>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-[#a0a0a8] mt-2">
                 ⚠️ Schnelle Aktion erforderlich!
               </p>
             </div>
 
             {/* Avg Activation Duration */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6">
               <div className="flex items-center gap-2 mb-2">
                 <FaChartLine className="text-cyan-400" />
-                <p className="text-gray-400 text-sm">Durchschn. Lizenzdauer</p>
+                <p className="text-[#a0a0a8] text-sm">Durchschn. Lizenzdauer</p>
               </div>
               <p className="text-3xl font-bold text-cyan-400">
                 {Math.round(data.averageActivationDuration)}
               </p>
-              <p className="text-xs text-gray-500 mt-2">days</p>
+              <p className="text-xs text-[#a0a0a8] mt-2">days</p>
             </div>
           </div>
 
           {/* DISTRIBUTION SECTION */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Status Distribution */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <FaChartPie className="text-pink-400" />
                 Status Verteilung
@@ -339,7 +334,7 @@ export default function Analytics() {
                           {count} ({percentage}%)
                         </p>
                       </div>
-                      <div className="w-full bg-[#2C2C34] rounded h-3 overflow-hidden">
+                      <div className="w-full bg-[#2a2a34] rounded h-3 overflow-hidden">
                         <div
                           className={`${color} h-full transition-all`}
                           style={{ width: `${percentage}%` }}
@@ -352,7 +347,7 @@ export default function Analytics() {
             </div>
 
             {/* Type Distribution */}
-            <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <FaChartBar className="text-teal-400" />
                 Lizenz Typ Verteilung
@@ -387,7 +382,7 @@ export default function Analytics() {
                           {count} ({percentage}%)
                         </p>
                       </div>
-                      <div className="w-full bg-[#2C2C34] rounded h-3 overflow-hidden">
+                      <div className="w-full bg-[#2a2a34] rounded h-3 overflow-hidden">
                         <div
                           className={`${color} h-full transition-all`}
                           style={{ width: `${percentage}%` }}
@@ -401,7 +396,7 @@ export default function Analytics() {
           </div>
 
           {/* INSIGHTS SECTION */}
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
+          <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6">
             <h2 className="text-2xl font-bold mb-4">💡 Insights & Empfehlungen</h2>
 
             <div className="space-y-3">

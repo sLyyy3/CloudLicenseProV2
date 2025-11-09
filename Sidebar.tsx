@@ -1,163 +1,146 @@
-// src/components/Sidebar.tsx - VERBESSERT mit Active States & Smooth Transitions
+// src/components/Sidebar.tsx - HARMONISCH MIT DASHBOARD DESIGN
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import {
   FaHome,
-  FaUsers,
+  FaShoppingCart,
   FaBox,
-  FaChartBar,
+  FaKey,
+  FaUsers,
+  FaGem,
+  FaRocket,
+  FaUser,
   FaCog,
   FaSignOutAlt,
-  FaBars,
-  FaTimes,
-  FaKey,
 } from "react-icons/fa";
 
-type NavItem = {
-  name: string;
-  path: string;
-  icon: React.ReactNode;
-  label: string;
-};
-
 export default function Sidebar() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const [expanded, setExpanded] = useState(true);
 
-  const navItems: NavItem[] = [
-    { name: "Dashboard", path: "/dashboard", icon: <FaHome />, label: "dashboard" },
-    { name: "Lizenzen", path: "/licenses", icon: <FaKey />, label: "licenses" },
-    { name: "Kunden", path: "/customers", icon: <FaUsers />, label: "customers" },
-    { name: "Produkte", path: "/products", icon: <FaBox />, label: "products" },
-    { name: "Analytics", path: "/analytics", icon: <FaChartBar />, label: "analytics" },
-    { name: "Einstellungen", path: "/settings", icon: <FaCog />, label: "settings" },
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const menuItems = [
+    {
+      category: "RESELLER",
+      items: [
+        { label: "Dashboard", path: "/reseller-dashboard", icon: FaHome },
+        { label: "Marktplatz", path: "/reseller-marketplace", icon: FaBox },
+        { label: "Lager", path: "/reseller-inventory", icon: FaGem },
+        { label: "Key Verteilung", path: "/reseller-sales", icon: FaKey, badge: "LIVE" },
+        { label: "Developer", path: "/reseller-developers", icon: FaUsers },
+        { label: "Analytics", path: "/reseller-analytics", icon: FaRocket },
+     // ↑ quote hinzugefügt
+      ],
+    },
+    {
+      category: "SYSTEM",
+      items: [
+        { label: "Dashboard", path: "/dashboard", icon: FaHome },
+        { label: "Lizenzen", path: "/licenses", icon: FaKey },
+        { label: "Kunden", path: "/customers", icon: FaUsers },
+        { label: "Produkte", path: "/products", icon: FaBox },
+        { label: "Aktivierungen", path: "/activations", icon: FaRocket },
+        { label: "Analytics", path: "/analytics", icon: FaCog },
+      ],
+    },
   ];
 
-  function isActive(path: string): boolean {
-    return location.pathname === path;
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    navigate("/", { replace: true });
-  }
-
   return (
-    <>
-      {/* MOBILE MENU BUTTON */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed top-4 left-4 z-50 md:hidden p-2 bg-[#1A1A1F] rounded-lg border border-[#2C2C34]"
-      >
-        {mobileOpen ? <FaTimes /> : <FaBars />}
-      </button>
-
-      {/* SIDEBAR */}
-      <aside
-        className={`
-          fixed left-0 top-0 h-screen bg-[#1A1A1F] border-r border-[#2C2C34]
-          transition-all duration-300 ease-out
-          ${open ? "w-64" : "w-20"}
-          md:relative md:w-64
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-          z-40 overflow-y-auto
-        `}
-      >
-        {/* LOGO SECTION */}
-        <div className="h-20 border-b border-[#2C2C34] flex items-center justify-between px-4">
-          {open && (
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-[#00FF9C] flex items-center justify-center">
-                <FaKey className="text-[#0E0E12] text-lg" />
-              </div>
-              <div className={`transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}>
-                <p className="font-bold text-[#00FF9C] text-sm">CloudLicense</p>
-                <p className="text-xs text-gray-400">Pro</p>
-              </div>
+    <aside
+      className={`fixed left-0 top-0 h-screen bg-[#0F0F14] border-r border-[#1a1a24] overflow-y-auto transition-all duration-300
+        ${expanded ? "w-64" : "w-20"} hidden lg:block z-40`}
+    >
+      {/* Header Logo - LIKE DASHBOARD */}
+      <div className="sticky top-0 p-4 bg-[#0F0F14] border-b border-[#1a1a24]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#00FF9C] to-[#00D9FF] flex items-center justify-center shadow-lg shadow-[#00FF9C]/20">
+            <FaKey className="text-[#0F0F14] text-lg font-bold" />
+          </div>
+          {expanded && (
+            <div>
+              <p className="text-white font-bold text-sm">CloudLicense</p>
+              <p className="text-[#00FF9C] text-xs font-semibold">Pro</p>
             </div>
           )}
-          
-          {/* Toggle Button */}
-          <button
-            onClick={() => setOpen(!open)}
-            className="hidden md:block p-2 hover:bg-[#2C2C34] rounded-lg transition"
-          >
-            {open ? "◀" : "▶"}
-          </button>
         </div>
+      </div>
 
-        {/* NAVIGATION ITEMS */}
-        <nav className="mt-8 px-4 space-y-2">
-          {navItems.map((item) => {
-            const active = isActive(item.path);
-            return (
-              <button
-                key={item.name}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileOpen(false);
-                }}
-                className={`
-                  w-full flex items-center gap-4 px-4 py-3 rounded-lg
-                  transition-all duration-200
-                  ${
-                    active
-                      ? "bg-[#00FF9C]/20 text-[#00FF9C] border-l-4 border-[#00FF9C]"
-                      : "text-gray-400 hover:text-[#E0E0E0] hover:bg-[#2C2C34]"
-                  }
-                `}
-              >
-                <span className="text-lg min-w-6 flex justify-center">{item.icon}</span>
-                <span
+      {/* Menu Items */}
+      <nav className="p-4 space-y-6">
+        {menuItems.map((menuGroup) => (
+          <div key={menuGroup.category}>
+            {expanded && (
+              <div className="mb-3 px-3">
+                <h3 className="text-xs font-bold text-[#00FF9C] uppercase tracking-wider">
+                  {menuGroup.category}
+                </h3>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              {menuGroup.items.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
                   className={`
-                    font-medium transition-opacity duration-300
-                    ${open ? "opacity-100" : "opacity-0 hidden"}
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200
+                    ${
+                      isActive(item.path)
+                        ? "bg-[#1a3a33] border border-[#00FF9C]/50 shadow-lg shadow-[#00FF9C]/10"
+                        : "text-[#a0a0a8] hover:text-white hover:bg-[#1a1a24]"
+                    }
                   `}
                 >
-                  {item.name}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
+                  <item.icon className={`text-base flex-shrink-0 ${isActive(item.path) ? "text-[#00FF9C]" : ""}`} />
+                  {expanded && (
+                    <span className={`text-sm font-medium flex-1 text-left ${isActive(item.path) ? "text-[#00FF9C]" : ""}`}>
+                      {item.label}
+                    </span>
+                  )}
+                  {expanded && item.badge && (
+                    <span className="bg-[#00FF9C] text-[#0F0F14] text-xs px-2 py-0.5 rounded-full font-bold">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
 
-        {/* SEPARATOR */}
-        <div className="my-8 mx-4 border-t border-[#2C2C34]"></div>
+      {/* Bottom Section */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#1a1a24] bg-[#0F0F14]">
+        {expanded && (
+          <div className="mb-4 p-3 rounded-lg bg-[#1a1a24] border border-[#00FF9C]/20">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00FF9C] to-[#00D9FF] flex items-center justify-center">
+                <FaUser className="text-[#0F0F14] text-xs font-bold" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-white truncate">Reseller</p>
+                <p className="text-xs text-[#00FF9C] truncate">Premium</p>
+              </div>
+            </div>
+          </div>
+        )}
 
-        {/* LOGOUT BUTTON - at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#2C2C34] bg-[#1A1A1F]">
-          <button
-            onClick={handleLogout}
-            className={`
-              w-full flex items-center gap-4 px-4 py-3 rounded-lg
-              text-red-400 hover:bg-red-600/10 transition-all duration-200
-            `}
-          >
-            <span className="text-lg min-w-6 flex justify-center">
-              <FaSignOutAlt />
-            </span>
-            <span
-              className={`
-                font-medium transition-opacity duration-300
-                ${open ? "opacity-100" : "opacity-0 hidden"}
-              `}
-            >
-              Logout
-            </span>
-          </button>
-        </div>
-      </aside>
-
-      {/* MOBILE OVERLAY */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-    </>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#2a1a1a] hover:bg-[#3a2a2a] text-[#ff6b6b] transition-all border border-[#ff6b6b]/20"
+        >
+          <FaSignOutAlt className="text-base flex-shrink-0" />
+          {expanded && <span className="text-sm font-medium">Logout</span>}
+        </button>
+      </div>
+    </aside>
   );
 }

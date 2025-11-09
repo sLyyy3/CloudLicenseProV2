@@ -1,7 +1,7 @@
-// src/pages/Customers.tsx - VERBESSERT mit Professional Layout
+// src/pages/Customers.tsx - KORRIGIERT
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { FaUsers, FaPlus, FaSearch, FaDownload, FaTrash, FaEdit } from "react-icons/fa";
+import { FaUsers, FaPlus, FaSearch, FaDownload, FaTrash } from "react-icons/fa";
 import Sidebar from "../components/Sidebar";
 import { useDialog } from "../components/Dialog";
 import { useAdvancedFilter, usePagination, exportToCSV } from "../utils/helpers.tsx";
@@ -20,9 +20,7 @@ export default function Customers() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [newCustomer, setNewCustomer] = useState({ name: "", email: "" });
   const [showAddModal, setShowAddModal] = useState(false);
-  const [stats, setStats] = useState({
-    total: 0,
-  });
+  const [stats, setStats] = useState({ total: 0 });
 
   // Filter & Search
   const { filters, setFilters, filtered } = useAdvancedFilter(customers);
@@ -82,10 +80,7 @@ export default function Customers() {
 
     const { error } = await supabase
       .from("customers")
-      .insert({
-        ...newCustomer,
-        organization_id: organizationId,
-      });
+      .insert({ ...newCustomer, organization_id: organizationId });
 
     if (error) {
       openDialog({
@@ -133,9 +128,9 @@ export default function Customers() {
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0] min-h-screen flex items-center justify-center">
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0] min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="loader mb-4"></div>
             <p>Lädt Kunden...</p>
@@ -149,21 +144,19 @@ export default function Customers() {
     <>
       {DialogComponent}
 
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
 
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0]">
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0]">
           {/* HEADER */}
-          <div className="border-b border-[#2C2C34] p-8">
+          <div className="border-b border-[#2a2a34] p-8">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-4xl font-extrabold flex items-center gap-2">
                   <FaUsers className="text-[#00FF9C]" />
                   Kunden
                 </h1>
-                <p className="text-gray-400 mt-2">
-                  Verwalte alle deine Kunden
-                </p>
+                <p className="text-[#a0a0a8] mt-2">Verwalte alle deine Kunden</p>
               </div>
 
               <button
@@ -176,21 +169,21 @@ export default function Customers() {
 
             {/* STATS */}
             <div className="grid grid-cols-1 gap-4 mt-6">
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">Gesamt Kunden</p>
+              <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-4">
+                <p className="text-[#a0a0a8] text-sm">Gesamt Kunden</p>
                 <p className="text-3xl font-bold text-[#00FF9C]">{stats.total}</p>
               </div>
             </div>
           </div>
 
           {/* SEARCH & FILTER */}
-          <div className="border-b border-[#2C2C34] p-8">
+          <div className="border-b border-[#2a2a34] p-8">
             <div className="flex gap-4 flex-wrap items-end">
               {/* Search Input */}
               <div className="flex-1 min-w-64">
-                <label className="block text-sm text-gray-400 mb-2">Suche</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">Suche</label>
                 <div className="relative">
-                  <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                  <FaSearch className="absolute left-3 top-3 text-[#a0a0a8]" />
                   <input
                     type="text"
                     placeholder="Kunde Name, Email..."
@@ -198,7 +191,7 @@ export default function Customers() {
                     onChange={(e) =>
                       setFilters({ ...filters, searchQuery: e.target.value })
                     }
-                    className="w-full pl-10 pr-4 py-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
+                    className="w-full pl-10 pr-4 py-2 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                   />
                 </div>
               </div>
@@ -223,7 +216,7 @@ export default function Customers() {
               </button>
             </div>
 
-            <div className="text-sm text-gray-400 mt-4">
+            <div className="text-sm text-[#a0a0a8] mt-4">
               Zeige {pagination.currentItems.length} von {filtered.length} Kunden
             </div>
           </div>
@@ -231,7 +224,7 @@ export default function Customers() {
           {/* CUSTOMER LIST */}
           <div className="p-8">
             {pagination.currentItems.length === 0 ? (
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-8 text-center text-gray-400">
+              <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-8 text-center text-[#a0a0a8]">
                 <p className="text-lg font-semibold mb-2">Keine Kunden gefunden</p>
                 <p className="text-sm">Erstelle deinen ersten Kunden um zu beginnen</p>
               </div>
@@ -240,13 +233,13 @@ export default function Customers() {
                 {pagination.currentItems.map((customer) => (
                   <div
                     key={customer.id}
-                    className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4 hover:bg-[#2C2C34] transition"
+                    className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-4 hover:bg-[#2a2a34] transition"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <p className="font-semibold text-lg">{customer.name}</p>
-                        <p className="text-sm text-gray-400">{customer.email}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-sm text-[#a0a0a8]">{customer.email}</p>
+                        <p className="text-xs text-[#a0a0a8] mt-1">
                           Erstellt: {new Date(customer.created_at).toLocaleDateString("de-DE")}
                         </p>
                       </div>
@@ -280,37 +273,33 @@ export default function Customers() {
                 <button
                   onClick={pagination.prevPage}
                   disabled={!pagination.hasPrevPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3C3C44] transition"
+                  className="px-4 py-2 bg-[#2a2a34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3a3a44] transition"
                 >
                   Previous
                 </button>
 
                 <div className="flex gap-1">
-                  {Array.from(
-                    { length: pagination.totalPages },
-                    (_, i) => i + 1
-                  ).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => pagination.goToPage(page)}
-                      className={`
-                        w-10 h-10 rounded font-bold transition
-                        ${
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => pagination.goToPage(page)}
+                        className={`w-10 h-10 rounded font-bold transition ${
                           page === pagination.currentPage
                             ? "bg-[#00FF9C] text-black"
-                            : "bg-[#2C2C34] hover:bg-[#3C3C44]"
-                        }
-                      `}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                            : "bg-[#2a2a34] hover:bg-[#3a3a44]"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  )}
                 </div>
 
                 <button
                   onClick={pagination.nextPage}
                   disabled={!pagination.hasNextPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3C3C44] transition"
+                  className="px-4 py-2 bg-[#2a2a34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3a3a44] transition"
                 >
                   Next
                 </button>
@@ -323,12 +312,12 @@ export default function Customers() {
       {/* ADD CUSTOMER MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-6 w-full max-w-md">
+          <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-xl p-6 w-full max-w-md">
             <h2 className="text-2xl font-bold mb-6">➕ Neuer Kunde</h2>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Name</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">Name</label>
                 <input
                   type="text"
                   value={newCustomer.name}
@@ -336,12 +325,12 @@ export default function Customers() {
                     setNewCustomer({ ...newCustomer, name: e.target.value })
                   }
                   placeholder="z.B. John Doe"
-                  className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
+                  className="w-full p-3 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Email</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">Email</label>
                 <input
                   type="email"
                   value={newCustomer.email}
@@ -349,7 +338,7 @@ export default function Customers() {
                     setNewCustomer({ ...newCustomer, email: e.target.value })
                   }
                   placeholder="john@example.com"
-                  className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
+                  className="w-full p-3 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                 />
               </div>
             </div>

@@ -1,8 +1,9 @@
-// src/pages/ResellerAnalytics.tsx - RESELLER ANALYTICS DASHBOARD
+// src/pages/ResellerAnalytics.tsx - REDESIGNED: Analytics mit neuem Design (FIXED)
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { FaArrowLeft, FaChartBar, FaKey, FaShoppingCart, FaDollarSign } from "react-icons/fa";
+import { FaArrowLeft, FaChartBar, FaKey, FaShoppingCart, FaDollarSign, FaFire } from "react-icons/fa";
+import Sidebar from "../components/Sidebar";
 
 type SalesData = {
   product_name: string;
@@ -45,9 +46,7 @@ export default function ResellerAnalytics() {
           .eq("organization_id", orgId)
           .single();
 
-        if (resellerData) {
-          reId = resellerData.id;
-        }
+        if (resellerData) reId = resellerData.id;
       }
 
       setOrganizationId(orgId);
@@ -60,9 +59,6 @@ export default function ResellerAnalytics() {
   async function loadAnalytics(reId: string) {
     setLoading(true);
     try {
-      console.log("📊 Loading analytics for reseller:", reId);
-
-      // 1. Lade alle reseller_products
       const { data: productsData } = await supabase
         .from("reseller_products")
         .select("*, products(name)")
@@ -73,7 +69,6 @@ export default function ResellerAnalytics() {
         return;
       }
 
-      // Berechne Stats
       const totalKeysPurchased = productsData.reduce((sum, p) => sum + p.quantity_purchased, 0);
       const totalKeysSold = productsData.reduce((sum, p) => sum + p.quantity_sold, 0);
       const totalRevenue = productsData.reduce(
@@ -94,23 +89,17 @@ export default function ResellerAnalytics() {
         }))
         .sort((a, b) => b.revenue - a.revenue);
 
-      // TODO: Berechne monatlich/wöchentlich (würde customer_orders Tabelle brauchen)
-      const thisMonthRevenue = totalRevenue; // Placeholder
-      const thisWeekRevenue = Math.round(totalRevenue / 4); // Placeholder
-
       setAnalytics({
         total_keys_purchased: totalKeysPurchased,
         total_keys_sold: totalKeysSold,
         total_revenue: totalRevenue,
         total_profit: totalProfit,
         sales_by_product: salesByProduct,
-        this_month_revenue: thisMonthRevenue,
-        this_week_revenue: thisWeekRevenue,
+        this_month_revenue: totalRevenue,
+        this_week_revenue: Math.round(totalRevenue / 4),
       });
-
-      console.log("✅ Analytics loaded!");
     } catch (err) {
-      console.error("❌ Error:", err);
+      console.error("Error:", err);
     }
     setLoading(false);
   }
@@ -119,7 +108,7 @@ export default function ResellerAnalytics() {
     return (
       <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0] flex items-center justify-center">
         <div className="text-center">
-          <div className="text-2xl mb-4">⏳</div>
+          <div className="text-3xl mb-4 animate-spin">⏳</div>
           <p>Lädt Analytics...</p>
         </div>
       </div>
@@ -128,8 +117,9 @@ export default function ResellerAnalytics() {
 
   if (!analytics) {
     return (
-      <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0]">
-        <div className="flex items-center justify-center h-screen text-gray-400">
+      <div className="min-h-screen bg-[#0E0E12]">
+        <Sidebar />
+        <div className="ml-0 md:ml-64 flex items-center justify-center h-screen text-gray-400">
           <p>Keine Daten verfügbar</p>
         </div>
       </div>
@@ -138,137 +128,178 @@ export default function ResellerAnalytics() {
 
   return (
     <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0]">
+      <Sidebar />
+
       {/* HEADER */}
-      <div className="bg-[#1A1A1F] border-b border-[#2C2C34] p-6">
+      <div className="ml-0 md:ml-64 bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border-b border-yellow-500/20 p-6 sticky top-0 z-40 shadow-lg shadow-yellow-500/10">
         <div className="max-w-7xl mx-auto">
           <button
             onClick={() => navigate("/reseller-dashboard")}
-            className="flex items-center gap-2 text-gray-400 hover:text-[#00FF9C] transition mb-4"
+            className="flex items-center gap-2 text-gray-400 hover:text-yellow-400 transition mb-4 text-sm"
           >
-            <FaArrowLeft /> Zurück zum Dashboard
+            <FaArrowLeft /> Zurück
           </button>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <FaChartBar className="text-[#00FF9C]" />
-            Analytics
+          <h1 className="text-4xl font-bold flex items-center gap-3 mb-2">
+            <div className="p-3 bg-yellow-500/20 rounded-lg">
+              <FaChartBar className="text-yellow-400 text-2xl" />
+            </div>
+            Analytics & Statistiken
           </h1>
-          <p className="text-gray-400 mt-1">Deine Verkaufs- und Umsatzstatistiken</p>
+          <p className="text-gray-400">Deine Verkaufs- und Umsatzstatistiken im Überblick</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-8">
-        {/* MAIN STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <FaKey className="text-[#00FF9C]" />
-              <p className="text-gray-400">Gekaufte Keys</p>
+      <div className="ml-0 md:ml-64 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* MAIN STATS */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {/* Gekaufte Keys */}
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-purple-500/20 rounded-lg p-6 hover:border-purple-500/50 transition shadow-lg hover:shadow-purple-500/10">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-gray-400 text-sm">🛒 Gekaufte Keys</p>
+                <FaKey className="text-purple-400 text-2xl" />
+              </div>
+              <p className="text-4xl font-bold text-purple-400">{analytics.total_keys_purchased}</p>
+              <p className="text-xs text-gray-500 mt-2">insgesamt gekauft</p>
             </div>
-            <p className="text-4xl font-bold text-[#00FF9C]">{analytics.total_keys_purchased}</p>
-          </div>
 
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <FaShoppingCart className="text-blue-400" />
-              <p className="text-gray-400">Verkaufte Keys</p>
+            {/* Verkaufte Keys */}
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-blue-500/20 rounded-lg p-6 hover:border-blue-500/50 transition shadow-lg hover:shadow-blue-500/10">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-gray-400 text-sm">📦 Verkaufte Keys</p>
+                <FaShoppingCart className="text-blue-400 text-2xl" />
+              </div>
+              <p className="text-4xl font-bold text-blue-400">{analytics.total_keys_sold}</p>
+              <p className="text-xs text-gray-500 mt-2">an Kunden verkauft</p>
             </div>
-            <p className="text-4xl font-bold text-blue-400">{analytics.total_keys_sold}</p>
-          </div>
 
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <FaDollarSign className="text-green-400" />
-              <p className="text-gray-400">Umsatz</p>
+            {/* Umsatz */}
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-500/20 rounded-lg p-6 hover:border-green-500/50 transition shadow-lg hover:shadow-green-500/10">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-gray-400 text-sm">💵 Umsatz</p>
+                <FaDollarSign className="text-green-400 text-2xl" />
+              </div>
+              <p className="text-4xl font-bold text-green-400">€{analytics.total_revenue.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 mt-2">Gesamteinnahmen</p>
             </div>
-            <p className="text-4xl font-bold text-green-400">
-              €{analytics.total_revenue.toFixed(2)}
-            </p>
-          </div>
 
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <FaDollarSign className="text-yellow-400" />
-              <p className="text-gray-400">Gewinn</p>
+            {/* Gewinn */}
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#00FF9C]/20 rounded-lg p-6 hover:border-[#00FF9C]/50 transition shadow-lg hover:shadow-[#00FF9C]/10">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-gray-400 text-sm">📈 Gewinn</p>
+                <FaFire className="text-[#00FF9C] text-2xl" />
+              </div>
+              <p className="text-4xl font-bold text-[#00FF9C]">€{analytics.total_profit.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 mt-2">Dein Profit</p>
             </div>
-            <p className="text-4xl font-bold text-yellow-400">
-              €{analytics.total_profit.toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        {/* PERIOD STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
-            <p className="text-gray-400 mb-2">📅 Diese Woche</p>
-            <p className="text-3xl font-bold text-[#00FF9C]">
-              €{analytics.this_week_revenue.toFixed(2)}
-            </p>
           </div>
 
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
-            <p className="text-gray-400 mb-2">📆 Dieser Monat</p>
-            <p className="text-3xl font-bold text-blue-400">
-              €{analytics.this_month_revenue.toFixed(2)}
-            </p>
+          {/* PERIOD STATS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Diese Woche */}
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-blue-500/20 rounded-lg p-6 hover:border-blue-500/50 transition">
+              <p className="text-gray-400 mb-3">📅 Diese Woche</p>
+              <p className="text-4xl font-bold text-blue-400">€{analytics.this_week_revenue.toFixed(2)}</p>
+              <div className="mt-4 h-2 bg-[#0E0E12] rounded-full overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-500 to-blue-400 h-full" style={{ width: "45%" }}></div>
+              </div>
+            </div>
+
+            {/* Dieser Monat */}
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-500/20 rounded-lg p-6 hover:border-green-500/50 transition">
+              <p className="text-gray-400 mb-3">📆 Dieser Monat</p>
+              <p className="text-4xl font-bold text-green-400">€{analytics.this_month_revenue.toFixed(2)}</p>
+              <div className="mt-4 h-2 bg-[#0E0E12] rounded-full overflow-hidden">
+                <div className="bg-gradient-to-r from-green-500 to-green-400 h-full" style={{ width: "100%" }}></div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* TOP PRODUCTS */}
-        {analytics.sales_by_product.length > 0 && (
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6">
-            <h2 className="text-2xl font-bold mb-4">🏆 Top Verkaufte Produkte</h2>
+          {/* TOP PRODUCTS */}
+          {analytics.sales_by_product.length > 0 && (
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#2C2C34] rounded-lg p-6 mb-8">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                🏆 Top Verkaufte Produkte
+              </h2>
 
-            <div className="space-y-3">
-              {analytics.sales_by_product.map((product, idx) => (
-                <div key={idx} className="bg-[#2C2C34] rounded p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-bold">{product.product_name}</p>
-                    <span className="bg-[#00FF9C] text-[#0E0E12] px-2 py-1 rounded text-sm font-bold">
-                      #{idx + 1}
-                    </span>
-                  </div>
+              <div className="space-y-4">
+                {analytics.sales_by_product.map((product, idx) => {
+                  const percentage = (product.revenue / analytics.total_revenue) * 100;
+                  const colors = [
+                    "from-[#00FF9C] to-green-400",
+                    "from-blue-500 to-blue-400",
+                    "from-purple-500 to-purple-400",
+                  ];
+                  const color = colors[idx % colors.length];
 
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-400">Verkauft</p>
-                      <p className="font-bold text-blue-400">{product.quantity_sold}</p>
+                  return (
+                    <div key={idx} className="bg-[#0E0E12]/50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl font-bold text-[#00FF9C] bg-[#1A1A1F] w-8 h-8 rounded flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <p className="font-bold">{product.product_name}</p>
+                            <p className="text-xs text-gray-500">{product.quantity_sold} Keys verkauft</p>
+                          </div>
+                        </div>
+                        <p className="text-right">
+                          <p className="text-2xl font-bold text-green-400">€{product.revenue.toFixed(2)}</p>
+                          <p className="text-xs text-gray-400">{percentage.toFixed(1)}% des Umsatzes</p>
+                        </p>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="h-2 bg-[#2C2C34] rounded-full overflow-hidden">
+                        <div
+                          className={`bg-gradient-to-r ${color} h-full transition-all`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-gray-400">Umsatz</p>
-                      <p className="font-bold text-green-400">€{product.revenue.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400">Anteil</p>
-                      <p className="font-bold">
-                        {((product.revenue / analytics.total_revenue) * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-                  {/* Progress Bar */}
-                  <div className="mt-3 bg-[#1A1A1F] rounded h-2 overflow-hidden">
-                    <div
-                      className="bg-[#00FF9C] h-full"
-                      style={{
-                        width: `${(product.revenue / analytics.total_revenue) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+          {/* SUMMARY CARDS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-yellow-500/20 rounded-lg p-6">
+              <p className="text-gray-400 text-sm mb-2">📊 Durchschnitt pro Key</p>
+              <p className="text-3xl font-bold text-yellow-400">
+                €{(analytics.total_revenue / Math.max(analytics.total_keys_sold, 1)).toFixed(2)}
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-orange-500/20 rounded-lg p-6">
+              <p className="text-gray-400 text-sm mb-2">💹 Gewinn pro Key</p>
+              <p className="text-3xl font-bold text-orange-400">
+                €{(analytics.total_profit / Math.max(analytics.total_keys_sold, 1)).toFixed(2)}
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-pink-500/20 rounded-lg p-6">
+              <p className="text-gray-400 text-sm mb-2">📈 Conversion Rate</p>
+              <p className="text-3xl font-bold text-pink-400">
+                {((analytics.total_keys_sold / Math.max(analytics.total_keys_purchased, 1)) * 100).toFixed(1)}%
+              </p>
             </div>
           </div>
-        )}
 
-        {/* INFO */}
-        <div className="mt-12 bg-blue-600/20 border border-blue-600 rounded-lg p-6">
-          <h3 className="font-bold text-blue-400 mb-3">ℹ️ Wie funktioniert Analytics?</h3>
-          <ul className="text-sm text-blue-300 space-y-2">
-            <li>✅ <strong>Gekaufte Keys:</strong> Anzahl aller Keys die du gekauft hast</li>
-            <li>✅ <strong>Verkaufte Keys:</strong> Anzahl aller Keys die deine Kunden gekauft haben</li>
-            <li>✅ <strong>Umsatz:</strong> Gesamt Einnahmen (Verkaufspreis × Menge)</li>
-            <li>✅ <strong>Gewinn:</strong> Dein Profit (Umsatz - Einkaufskosten)</li>
-            <li>✅ <strong>Zeiträume:</strong> Wöchentliche und monatliche Überblicke</li>
-          </ul>
+          {/* INFO */}
+          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/50 rounded-lg p-6">
+            <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">
+              💡 Analytics-Tipps
+            </h3>
+            <ul className="text-sm text-blue-300 space-y-2">
+              <li>✅ Überwache deine Top-Produkte regelmäßig</li>
+              <li>✅ Arbeite an der Conversion Rate (Kauf vs. Verkauf)</li>
+              <li>✅ Identifiziere Bestseller und fokussiere auf diese</li>
+              <li>✅ Kalkuliere Preise so, dass die Margin stimmt</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

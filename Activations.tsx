@@ -193,9 +193,9 @@ export default function Activations() {
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0] min-h-screen flex items-center justify-center">
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0] min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="mb-4 text-2xl">⏳</div>
             <p>Lädt Aktivierungen...</p>
@@ -209,39 +209,39 @@ export default function Activations() {
     <>
       {DialogComponent}
 
-      <div className="flex">
+      <div className="flex w-full min-h-screen bg-[#0F0F14]">
         <Sidebar />
 
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0]">
+        <main className="ml-64 flex-1 bg-[#0F0F14] text-[#E0E0E0]">
           {/* HEADER */}
-          <div className="border-b border-[#2C2C34] p-8">
+          <div className="border-b border-[#2a2a34] p-8">
             <h1 className="text-4xl font-extrabold flex items-center gap-2 mb-2">
               <FaCheck className="text-[#00FF9C]" />
               Aktivierungen
             </h1>
-            <p className="text-gray-400">
+            <p className="text-[#a0a0a8]">
               Überwache alle aktivierten externe Programme
             </p>
 
             {/* STATS */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">Gesamt</p>
+              <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-4">
+                <p className="text-[#a0a0a8] text-sm">Gesamt</p>
                 <p className="text-3xl font-bold text-[#00FF9C]">{stats.total}</p>
               </div>
 
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">🟢 Aktiv</p>
+              <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-4">
+                <p className="text-[#a0a0a8] text-sm">🟢 Aktiv</p>
                 <p className="text-3xl font-bold text-green-400">{stats.active}</p>
               </div>
 
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">🔴 Inaktiv</p>
+              <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-4">
+                <p className="text-[#a0a0a8] text-sm">🔴 Inaktiv</p>
                 <p className="text-3xl font-bold text-red-400">{stats.inactive}</p>
               </div>
 
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">📅 Heute</p>
+              <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-4">
+                <p className="text-[#a0a0a8] text-sm">📅 Heute</p>
                 <p className="text-3xl font-bold text-blue-400">
                   {stats.todayActivations}
                 </p>
@@ -250,32 +250,32 @@ export default function Activations() {
           </div>
 
           {/* SEARCH & FILTER */}
-          <div className="border-b border-[#2C2C34] p-8">
+          <div className="border-b border-[#2a2a34] p-8">
             <div className="flex gap-4 flex-wrap items-end">
               {/* Search Input */}
               <div className="flex-1 min-w-64">
-                <label className="block text-sm text-gray-400 mb-2">Suche</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">Suche</label>
                 <div className="relative">
-                  <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                  <FaSearch className="absolute left-3 top-3 text-[#a0a0a8]" />
                   <input
                     type="text"
                     placeholder="Email, Programm, Key..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
+                    className="w-full pl-10 pr-4 py-2 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                   />
                 </div>
               </div>
 
               {/* Status Filter */}
               <div className="min-w-48">
-                <label className="block text-sm text-gray-400 mb-2">Status</label>
+                <label className="block text-sm text-[#a0a0a8] mb-2">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) =>
                     setStatusFilter(e.target.value as "" | "active" | "inactive")
                   }
-                  className="w-full p-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition text-sm"
+                  className="w-full p-2 rounded bg-[#2a2a34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition text-sm"
                 >
                   <option value="">Alle Status</option>
                   <option value="active">🟢 Aktiv</option>
@@ -306,7 +306,7 @@ export default function Activations() {
               </button>
             </div>
 
-            <div className="text-sm text-gray-400 mt-4">
+            <div className="text-sm text-[#a0a0a8] mt-4">
               Zeige {pagination.currentItems.length} von {filtered.length}{" "}
               Aktivierungen
             </div>
@@ -315,7 +315,7 @@ export default function Activations() {
           {/* ACTIVATIONS LIST */}
           <div className="p-8">
             {pagination.currentItems.length === 0 ? (
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-8 text-center text-gray-400">
+              <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-8 text-center text-[#a0a0a8]">
                 <p className="text-lg font-semibold mb-2">
                   Keine Aktivierungen gefunden
                 </p>
@@ -328,7 +328,7 @@ export default function Activations() {
                 {pagination.currentItems.map((activation) => (
                   <div
                     key={activation.id}
-                    className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4 hover:bg-[#2C2C34] transition"
+                    className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-4 hover:bg-[#2a2a34] transition"
                   >
                     <div className="flex items-start justify-between gap-4">
                       {/* Status Badge */}
@@ -345,13 +345,13 @@ export default function Activations() {
                         <p className="font-bold text-lg mb-1">
                           {activation.program_name}
                         </p>
-                        <div className="text-xs text-gray-400 space-y-1">
+                        <div className="text-xs text-[#a0a0a8] space-y-1">
                           <p>
                             <strong>Email:</strong> {activation.email}
                           </p>
                           <p>
                             <strong>License Key:</strong>{" "}
-                            <code className="bg-[#0E0E12] px-1 rounded font-mono text-[#00FF9C]">
+                            <code className="bg-[#0F0F14] px-1 rounded font-mono text-[#00FF9C]">
                               {activation.license_key}
                             </code>
                           </p>
@@ -421,7 +421,7 @@ export default function Activations() {
                 <button
                   onClick={pagination.prevPage}
                   disabled={!pagination.hasPrevPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3C3C44] transition"
+                  className="px-4 py-2 bg-[#2a2a34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3a3a44] transition"
                 >
                   ← Previous
                 </button>
@@ -439,7 +439,7 @@ export default function Activations() {
                         ${
                           page === pagination.currentPage
                             ? "bg-[#00FF9C] text-black"
-                            : "bg-[#2C2C34] hover:bg-[#3C3C44]"
+                            : "bg-[#2a2a34] hover:bg-[#3a3a44]"
                         }
                       `}
                     >
@@ -451,7 +451,7 @@ export default function Activations() {
                 <button
                   onClick={pagination.nextPage}
                   disabled={!pagination.hasNextPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3C3C44] transition"
+                  className="px-4 py-2 bg-[#2a2a34] rounded disabled:opacity-50 flex items-center gap-2 hover:bg-[#3a3a44] transition"
                 >
                   Next →
                 </button>
