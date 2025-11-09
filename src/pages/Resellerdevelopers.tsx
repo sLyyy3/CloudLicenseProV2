@@ -272,9 +272,9 @@ export default function ResellerDevelopers() {
           <div className="text-left space-y-2">
             <p><strong>{buyProduct.name}</strong></p>
             <p>Menge: <strong>{buyQuantity}</strong></p>
-            <p>Preis pro Key: <strong>€{buyPrice.toFixed(2)}</strong></p>
+            <p>Preis pro Key: <strong>€{(buyPrice || 0).toFixed(2)}</strong></p>
             <p className="text-green-400 font-bold">
-              Gewinn pro Key: €{(buyPrice - buyProduct.base_price).toFixed(2)}
+              Gewinn pro Key: €{((buyPrice || 0) - (buyProduct.base_price || 0)).toFixed(2)}
             </p>
           </div>
         ),
@@ -395,7 +395,7 @@ export default function ResellerDevelopers() {
                         const resaleLine = resaleLines.find(
                           (r) => r.product_id === product.id
                         );
-                        const profitPerUnit = product.reseller_price - product.base_price;
+                        const profitPerUnit = (product.reseller_price || 0) - (product.base_price || 0);
 
                         return (
                           <div
@@ -411,19 +411,19 @@ export default function ResellerDevelopers() {
                                   <div>
                                     <p className="text-xs text-gray-400 mb-1">Base Preis</p>
                                     <p className="text-lg font-bold text-blue-400">
-                                      €{product.base_price.toFixed(2)}
+                                      €{(product.base_price || 0).toFixed(2)}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-400 mb-1">Dein Preis</p>
                                     <p className="text-lg font-bold text-[#00FF9C]">
-                                      €{product.reseller_price.toFixed(2)}
+                                      €{(product.reseller_price || 0).toFixed(2)}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-400 mb-1">Gewinn/Unit</p>
                                     <p className="text-lg font-bold text-green-400">
-                                      €{profitPerUnit.toFixed(2)}
+                                      €{(profitPerUnit || 0).toFixed(2)}
                                     </p>
                                   </div>
                                 </div>
@@ -509,7 +509,7 @@ export default function ResellerDevelopers() {
               <div>
                 <label className="block text-gray-400 mb-2">Basis Preis:</label>
                 <p className="text-lg font-bold text-blue-400">
-                  €{buyProduct.base_price.toFixed(2)}
+                  €{(buyProduct.base_price || 0).toFixed(2)}
                 </p>
               </div>
 
@@ -518,13 +518,13 @@ export default function ResellerDevelopers() {
                 <input
                   type="number"
                   step="0.01"
-                  min={buyProduct.base_price}
+                  min={buyProduct.base_price || 0}
                   value={buyPrice}
                   onChange={(e) => setBuyPrice(parseFloat(e.target.value) || 0)}
                   className="w-full p-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none text-lg font-bold text-[#00FF9C]"
                 />
                 <p className="text-xs text-green-400 mt-1">
-                  Gewinn: €{(buyPrice - buyProduct.base_price).toFixed(2)} pro Key
+                  Gewinn: €{(buyPrice - (buyProduct.base_price || 0)).toFixed(2)} pro Key
                 </p>
               </div>
 
@@ -543,19 +543,19 @@ export default function ResellerDevelopers() {
                 <div className="flex justify-between mb-2">
                   <p className="text-gray-400">Gesamt investieren:</p>
                   <p className="font-bold text-blue-400">
-                    €{(buyProduct.base_price * buyQuantity).toFixed(2)}
+                    €{((buyProduct.base_price || 0) * buyQuantity).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex justify-between border-t border-[#3C3C44] pt-2">
                   <p className="text-gray-400">Verkaufswert:</p>
                   <p className="font-bold text-[#00FF9C]">
-                    €{(buyPrice * buyQuantity).toFixed(2)}
+                    €{((buyPrice || 0) * buyQuantity).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex justify-between border-t border-[#3C3C44] pt-2">
                   <p className="text-gray-400">Potentieller Gewinn:</p>
                   <p className="font-bold text-green-400">
-                    €{((buyPrice - buyProduct.base_price) * buyQuantity).toFixed(2)}
+                    €{(((buyPrice || 0) - (buyProduct.base_price || 0)) * buyQuantity).toFixed(2)}
                   </p>
                 </div>
               </div>

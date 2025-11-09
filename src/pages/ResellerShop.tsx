@@ -134,6 +134,17 @@ export default function ResellerShop() {
       return;
     }
 
+    // Safety check for price
+    if (!product.reseller_price || product.reseller_price <= 0) {
+      openDialog({
+        type: "error",
+        title: "❌ Preis Fehler",
+        message: "Produkt hat keinen gültigen Preis",
+        closeButton: "OK",
+      });
+      return;
+    }
+
     try {
       console.log("🛒 Kauf starten:", product.product_name, "x", quantity);
 
@@ -175,18 +186,22 @@ export default function ResellerShop() {
         });
       }
 
-      // Record reseller sale
-      await supabase.from("reseller_sales").insert({
-        reseller_id: resellerId,
-        product_id: product.product_id,
-        product_name: product.product_name,
-        customer_name: user.email?.split("@")[0] || "Customer",
-        customer_email: user.email,
-        quantity,
-        unit_price: product.reseller_price,
-        total_price: totalPrice,
-        profit: (product.reseller_price - product.base_price) * quantity,
-      });
+      // Record reseller sale (optional - table might not exist yet)
+      try {
+        await supabase.from("reseller_sales").insert({
+          reseller_id: resellerId,
+          product_id: product.product_id,
+          product_name: product.product_name,
+          customer_name: user.email?.split("@")[0] || "Customer",
+          customer_email: user.email,
+          quantity,
+          unit_price: product.reseller_price,
+          total_price: totalPrice,
+          profit: (product.reseller_price - (product.base_price || 0)) * quantity,
+        });
+      } catch (salesError) {
+        console.log("reseller_sales tracking skipped (table not available)");
+      }
 
       // Update reseller product inventory
       await supabase
@@ -359,7 +374,7 @@ export default function ResellerShop() {
                       {/* PRICE */}
                       <div className="mb-4 pb-4 border-b border-[#2C2C34]">
                         <p className="text-3xl font-black text-[#00FF9C]">
-                          €{product.reseller_price.toFixed(2)}
+                          €{(product.reseller_price || 0).toFixed(2)}
                         </p>
                         <p className="text-xs text-gray-500">pro Key</p>
                       </div>
@@ -413,7 +428,7 @@ export default function ResellerShop() {
                       <div className="bg-[#2C2C34] rounded-lg p-3 mb-4">
                         <p className="text-xs text-gray-400">Gesamtpreis</p>
                         <p className="text-2xl font-bold text-[#00FF9C]">
-                          €{(product.reseller_price * (quantity || 1)).toFixed(2)}
+                          €{((product.reseller_price || 0) * (quantity || 1)).toFixed(2)}
                         </p>
                       </div>
 

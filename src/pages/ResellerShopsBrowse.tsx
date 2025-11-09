@@ -43,11 +43,20 @@ export default function ResellerShopsBrowse() {
               .eq("reseller_id", reseller.id)
               .gt("quantity_available", 0);
 
-            // Get total sales
-            const { count: totalSales } = await supabase
-              .from("reseller_sales")
-              .select("*", { count: "exact", head: true })
-              .eq("reseller_id", reseller.id);
+            // Get total sales (optional - might not exist yet)
+            let totalSales = 0;
+            try {
+              const { count, error } = await supabase
+                .from("reseller_sales")
+                .select("*", { count: "exact", head: true })
+                .eq("reseller_id", reseller.id);
+
+              if (!error) {
+                totalSales = count || 0;
+              }
+            } catch (err) {
+              console.log("reseller_sales table not available yet");
+            }
 
             return {
               id: reseller.id,
@@ -55,7 +64,7 @@ export default function ResellerShopsBrowse() {
               organization_id: reseller.organization_id,
               created_at: reseller.created_at,
               product_count: productCount || 0,
-              total_sales: totalSales || 0,
+              total_sales: totalSales,
             };
           })
         );
