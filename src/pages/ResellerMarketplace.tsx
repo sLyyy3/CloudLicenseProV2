@@ -35,37 +35,51 @@ export default function ResellerMarketplace() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser();
-      const orgId = (data.user?.user_metadata as any)?.organization_id;
-      let reId = (data.user?.user_metadata as any)?.reseller_id;
-      const isReseller = (data.user?.user_metadata as any)?.is_reseller;
+      try {
+        const { data, error: authError } = await supabase.auth.getUser();
 
-      if (!orgId || !isReseller) {
-        navigate("/reseller-login", { replace: true });
-        return;
-      }
-
-      if (!reId) {
-        const { data: resellerData, error } = await supabase
-          .from("resellers")
-          .select("id")
-          .eq("organization_id", orgId)
-          .single();
-
-        if (error || !resellerData) {
-          navigate("/reseller-register", { replace: true });
+        if (authError || !data.user) {
+          setLoading(false);
+          navigate("/reseller-login", { replace: true });
           return;
         }
 
-        reId = resellerData.id;
-        await supabase.auth.updateUser({
-          data: { is_reseller: true, organization_id: orgId, reseller_id: reId },
-        });
-      }
+        const orgId = (data.user?.user_metadata as any)?.organization_id;
+        let reId = (data.user?.user_metadata as any)?.reseller_id;
+        const isReseller = (data.user?.user_metadata as any)?.is_reseller;
 
-      setOrganizationId(orgId);
-      setResellerId(reId);
-      await loadMarketplace();
+        if (!orgId || !isReseller) {
+          setLoading(false);
+          navigate("/reseller-login", { replace: true });
+          return;
+        }
+
+        if (!reId) {
+          const { data: resellerData, error } = await supabase
+            .from("resellers")
+            .select("id")
+            .eq("organization_id", orgId)
+            .maybeSingle();
+
+          if (error || !resellerData) {
+            setLoading(false);
+            navigate("/reseller-register", { replace: true });
+            return;
+          }
+
+          reId = resellerData.id;
+          await supabase.auth.updateUser({
+            data: { is_reseller: true, organization_id: orgId, reseller_id: reId },
+          });
+        }
+
+        setOrganizationId(orgId);
+        setResellerId(reId);
+        await loadMarketplace();
+      } catch (err) {
+        setLoading(false);
+        console.error("Init error:", err);
+      }
     }
     init();
   }, []);
