@@ -121,8 +121,9 @@ export default function Sidebar() {
     {
       category: "HAUPT",
       items: [
-        { label: "Dashboard", path: "/dashboard", icon: FaHome },
+        { label: "Dashboard", path: "/customer-dashboard", icon: FaHome },
         { label: "Meine Keys", path: "/licenses", icon: FaKey },
+        { label: "Shop", path: "/shop", icon: FaShoppingCart },
       ],
     },
     {

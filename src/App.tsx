@@ -63,6 +63,9 @@ import CustomerPortal from "./pages/CustomerPortal";
 import CreateLicense from "./pages/CreateLicense";
 import Licenses from "./pages/Licenses";
 import ProfileSettings from "./pages/ProfileSettings";
+import CustomerDashboard from "./pages/CustomerDashboard";
+import ResellerShop from "./pages/ResellerShop";
+import ResellerShopsBrowse from "./pages/ResellerShopsBrowse";
 
 // ===== LICENSE AUTH STATE =====
 interface LicenseAuthState {
@@ -212,6 +215,8 @@ export default function App() {
         <Route path="/bundles" element={<KeyBundles />} />
         <Route path="/reviews" element={<CustomerReviews />} />
         <Route path="/portal" element={<CustomerPortal />} />
+        <Route path="/reseller-shops" element={<ResellerShopsBrowse />} />
+        <Route path="/reseller-shop/:resellerId" element={<ResellerShop />} />
 
         {/* ===== LICENSE LOGIN ROUTE ===== */}
         <Route
@@ -394,6 +399,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer-dashboard"
+          element={
+            <ProtectedRoute>
+              <CustomerDashboard />
             </ProtectedRoute>
           }
         />
