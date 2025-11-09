@@ -239,7 +239,7 @@ export default function ResellerDevelopers() {
           .from("reseller_products")
           .update({
             quantity_available: buyQuantity,
-            resale_price: buyPrice,
+            reseller_price: buyPrice, // ✅ FIX: Use reseller_price (not resale_price)
             updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id);
@@ -252,10 +252,11 @@ export default function ResellerDevelopers() {
           .insert({
             reseller_id: resellerId,
             product_id: buyProduct.id,
+            product_name: buyProduct.name,
             quantity_available: buyQuantity,
             quantity_sold: 0,
-            base_price: buyProduct.base_price,
-            resale_price: buyPrice, // ✅ FIX: Always set this!
+            reseller_price: buyPrice, // ✅ FIX: Use reseller_price (not resale_price)
+            description: buyProduct.description || "",
             status: "active",
           });
 

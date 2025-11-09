@@ -13,7 +13,7 @@ type ResellerProduct = {
   quantity_available: number;
   quantity_sold: number;
   description: string;
-  base_price: number;
+  status?: string;
 };
 
 type Reseller = {
@@ -197,7 +197,7 @@ export default function ResellerShop() {
           quantity,
           unit_price: product.reseller_price,
           total_price: totalPrice,
-          profit: (product.reseller_price - (product.base_price || 0)) * quantity,
+          // Note: profit calculation removed as base_price is no longer stored
         });
       } catch (salesError) {
         console.log("reseller_sales tracking skipped (table not available)");
@@ -213,12 +213,13 @@ export default function ResellerShop() {
         .eq("id", product.id);
 
       // Update reseller balance
-      const profit = (product.reseller_price - product.base_price) * quantity;
+      // Note: Since we don't store base_price, we treat total sale as revenue
+      const revenue = totalPrice;
       if (reseller) {
         await supabase
           .from("resellers")
           .update({
-            balance: reseller.balance + profit,
+            balance: reseller.balance + revenue,
           })
           .eq("id", resellerId);
       }
