@@ -98,6 +98,23 @@ type Transaction = {
   timestamp: string;
 };
 
+type License = {
+  id: string;
+  license_key: string;
+  product_id: string;
+  product_name?: string;
+  customer_id?: string;
+  customer_name?: string;
+  customer_email?: string;
+  status: "active" | "expired" | "suspended";
+  type?: string;
+  created_at: string;
+  expires_at?: string;
+  max_activations?: number;
+  current_activations?: number;
+  organization_id: string;
+};
+
 type Stats = {
   totalOrgs: number;
   totalDevelopers: number;
@@ -131,9 +148,14 @@ export default function AdminDashboard() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [licenses, setLicenses] = useState<License[]>([]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "active" | "inactive">("all");
+  const [licenseFilter, setLicenseFilter] = useState<"all" | "active" | "expired" | "suspended">("all");
+  const [selectedLicenses, setSelectedLicenses] = useState<Set<string>>(new Set());
+  const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
 
   const [stats, setStats] = useState<Stats>({
     totalOrgs: 0,
@@ -161,7 +183,7 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "customers" | "developers" | "resellers" | "transactions" | "analytics" | "health"
+    "overview" | "customers" | "developers" | "resellers" | "licenses" | "transactions" | "analytics" | "health"
   >("overview");
   const [godMode, setGodMode] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -304,6 +326,33 @@ export default function AdminDashboard() {
       );
       setResellers(resellersWithStats);
 
+      // ===== LICENSES =====
+      // Enrich licenses with product and customer names
+      const enrichedLicenses: License[] = (licensesData || []).map((license) => {
+        const product = productsData?.find((p) => p.id === license.product_id);
+        // Try to find customer from organizations or customer_orders
+        const org = orgsData?.find((o) => o.id === license.customer_id);
+        const customerOrder = ordersData?.find((o) => o.id === license.customer_id);
+
+        return {
+          id: license.id,
+          license_key: license.license_key,
+          product_id: license.product_id,
+          product_name: product?.name || license.product_name || "Unknown Product",
+          customer_id: license.customer_id,
+          customer_name: org?.name || license.customer_name || "Unknown",
+          customer_email: org?.owner_email || license.customer_email || customerOrder?.customer_email || "",
+          status: license.status || "active",
+          type: license.type,
+          created_at: license.created_at,
+          expires_at: license.expires_at,
+          max_activations: license.max_activations,
+          current_activations: license.current_activations || 0,
+          organization_id: license.organization_id,
+        };
+      });
+      setLicenses(enrichedLicenses);
+
       // ===== TRANSACTIONS =====
       const recentTransactions: Transaction[] = [];
 
@@ -419,6 +468,175 @@ export default function AdminDashboard() {
     });
   }
 
+  // ===== LICENSE MANAGEMENT FUNCTIONS =====
+
+  function toggleLicenseSelection(licenseId: string) {
+    const newSelection = new Set(selectedLicenses);
+    if (newSelection.has(licenseId)) {
+      newSelection.delete(licenseId);
+    } else {
+      newSelection.add(licenseId);
+    }
+    setSelectedLicenses(newSelection);
+  }
+
+  function toggleAllLicenses() {
+    if (selectedLicenses.size === filteredLicenses.length) {
+      setSelectedLicenses(new Set());
+    } else {
+      setSelectedLicenses(new Set(filteredLicenses.map((l) => l.id)));
+    }
+  }
+
+  async function handleLicenseAction(action: "activate" | "suspend" | "delete" | "extend", license: License) {
+    if (!godMode && (action === "delete" || action === "suspend")) {
+      openDialog({
+        type: "warning",
+        title: "⚠️ GOD MODE benötigt",
+        message: "Aktiviere GOD MODE um diese Aktion durchzuführen",
+        closeButton: "OK",
+      });
+      return;
+    }
+
+    try {
+      if (action === "delete") {
+        const confirmed = window.confirm(`⚠️ License ${license.license_key} wirklich löschen?`);
+        if (!confirmed) return;
+
+        const { error } = await supabase.from("licenses").delete().eq("id", license.id);
+        if (error) throw error;
+
+        openDialog({
+          type: "success",
+          title: "✅ Gelöscht",
+          message: "Lizenz wurde gelöscht",
+          closeButton: "OK",
+        });
+      } else if (action === "activate") {
+        const { error } = await supabase
+          .from("licenses")
+          .update({ status: "active" })
+          .eq("id", license.id);
+        if (error) throw error;
+
+        openDialog({
+          type: "success",
+          title: "✅ Aktiviert",
+          message: "Lizenz wurde aktiviert",
+          closeButton: "OK",
+        });
+      } else if (action === "suspend") {
+        const { error } = await supabase
+          .from("licenses")
+          .update({ status: "suspended" })
+          .eq("id", license.id);
+        if (error) throw error;
+
+        openDialog({
+          type: "success",
+          title: "✅ Suspendiert",
+          message: "Lizenz wurde suspendiert",
+          closeButton: "OK",
+        });
+      } else if (action === "extend") {
+        // Extend by 30 days
+        const currentExpiry = license.expires_at ? new Date(license.expires_at) : new Date();
+        const newExpiry = new Date(currentExpiry.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        const { error } = await supabase
+          .from("licenses")
+          .update({ expires_at: newExpiry.toISOString(), status: "active" })
+          .eq("id", license.id);
+        if (error) throw error;
+
+        openDialog({
+          type: "success",
+          title: "✅ Verlängert",
+          message: `Lizenz bis ${newExpiry.toLocaleDateString("de-DE")} verlängert`,
+          closeButton: "OK",
+        });
+      }
+
+      await loadAdminData();
+      setShowLicenseModal(false);
+    } catch (err: any) {
+      openDialog({
+        type: "error",
+        title: "❌ Fehler",
+        message: err.message,
+        closeButton: "OK",
+      });
+    }
+  }
+
+  async function handleBulkAction(action: "activate" | "suspend" | "delete" | "extend") {
+    if (!godMode) {
+      openDialog({
+        type: "warning",
+        title: "⚠️ GOD MODE benötigt",
+        message: "Aktiviere GOD MODE für Bulk Actions",
+        closeButton: "OK",
+      });
+      return;
+    }
+
+    const count = selectedLicenses.size;
+    if (count === 0) {
+      openDialog({
+        type: "warning",
+        title: "⚠️ Keine Auswahl",
+        message: "Bitte wähle mindestens eine Lizenz aus",
+        closeButton: "OK",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `⚠️ ${count} Lizenzen ${action === "delete" ? "löschen" : action === "activate" ? "aktivieren" : action === "suspend" ? "suspendieren" : "verlängern"}?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const ids = Array.from(selectedLicenses);
+
+      if (action === "delete") {
+        await supabase.from("licenses").delete().in("id", ids);
+      } else if (action === "activate") {
+        await supabase.from("licenses").update({ status: "active" }).in("id", ids);
+      } else if (action === "suspend") {
+        await supabase.from("licenses").update({ status: "suspended" }).in("id", ids);
+      } else if (action === "extend") {
+        // Can't bulk extend easily due to different expiry dates, so we skip for now
+        for (const id of ids) {
+          const license = licenses.find((l) => l.id === id);
+          if (license) {
+            const currentExpiry = license.expires_at ? new Date(license.expires_at) : new Date();
+            const newExpiry = new Date(currentExpiry.getTime() + 30 * 24 * 60 * 60 * 1000);
+            await supabase.from("licenses").update({ expires_at: newExpiry.toISOString() }).eq("id", id);
+          }
+        }
+      }
+
+      openDialog({
+        type: "success",
+        title: "✅ Erfolgreich",
+        message: `${count} Lizenzen ${action === "delete" ? "gelöscht" : action === "activate" ? "aktiviert" : action === "suspend" ? "suspendiert" : "verlängert"}`,
+        closeButton: "OK",
+      });
+
+      setSelectedLicenses(new Set());
+      await loadAdminData();
+    } catch (err: any) {
+      openDialog({
+        type: "error",
+        title: "❌ Fehler",
+        message: err.message,
+        closeButton: "OK",
+      });
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0E0E12] via-[#1A1A1F] to-[#0E0E12] text-[#E0E0E0] flex items-center justify-center">
@@ -450,6 +668,29 @@ export default function AdminDashboard() {
     const matchesSearch = r.shop_name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
+
+  const filteredLicenses = licenses.filter((l) => {
+    const matchesSearch =
+      l.license_key.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.customer_email?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesFilter =
+      licenseFilter === "all" ||
+      l.status === licenseFilter;
+
+    return matchesSearch && matchesFilter;
+  });
+
+  // Calculate expiring soon licenses (within 7 days)
+  const expiringSoon = licenses.filter((l) => {
+    if (!l.expires_at || l.status !== "active") return false;
+    const expiryDate = new Date(l.expires_at);
+    const now = new Date();
+    const daysUntilExpiry = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return daysUntilExpiry > 0 && daysUntilExpiry <= 7;
+  }).length;
 
   return (
     <>
@@ -667,6 +908,7 @@ export default function AdminDashboard() {
               { id: "customers", label: "Kunden", icon: FaShoppingCart, count: stats.totalCustomers },
               { id: "developers", label: "Developer", icon: FaBox, count: stats.totalDevelopers },
               { id: "resellers", label: "Reseller", icon: FaStore, count: stats.totalResellers },
+              { id: "licenses", label: "Lizenzen", icon: FaKey, count: stats.totalLicenses },
               { id: "transactions", label: "Transaktionen", icon: FaMoneyBillWave, count: transactions.length },
               { id: "analytics", label: "Analytics", icon: FaChartPie },
               { id: "health", label: "System", icon: FaServer },
@@ -694,7 +936,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* SEARCH & FILTER BAR */}
-          {(activeTab === "customers" || activeTab === "developers" || activeTab === "resellers") && (
+          {(activeTab === "customers" || activeTab === "developers" || activeTab === "resellers" || activeTab === "licenses") && (
             <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-4 mb-6">
               <div className="flex gap-4 flex-wrap items-center">
                 <div className="flex-1 min-w-64">
@@ -702,18 +944,43 @@ export default function AdminDashboard() {
                     <FaSearch className="absolute left-3 top-3 text-gray-400" />
                     <input
                       type="text"
-                      placeholder={`Suche ${activeTab === "customers" ? "Kunden" : activeTab === "developers" ? "Developer" : "Reseller"}...`}
+                      placeholder={`Suche ${
+                        activeTab === "customers" ? "Kunden" :
+                        activeTab === "developers" ? "Developer" :
+                        activeTab === "resellers" ? "Reseller" :
+                        "Lizenzen (Key, Product, Customer)"
+                      }...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-10 pr-4 py-2 rounded-lg bg-[#2C2C34] border border-[#3a3a44] focus:border-[#00FF9C] outline-none transition"
                     />
                   </div>
                 </div>
+
+                {activeTab === "licenses" && (
+                  <div className="flex gap-2">
+                    {["all", "active", "expired", "suspended"].map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setLicenseFilter(filter as any)}
+                        className={`px-3 py-2 rounded-lg text-sm font-bold transition ${
+                          licenseFilter === filter
+                            ? "bg-[#00FF9C] text-[#0E0E12]"
+                            : "bg-[#2C2C34] hover:bg-[#3C3C44]"
+                        }`}
+                      >
+                        {filter === "all" ? "Alle" : filter === "active" ? "Aktiv" : filter === "expired" ? "Abgelaufen" : "Suspendiert"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <button
                   onClick={() => {
                     if (activeTab === "customers") exportData(filteredCustomers, "customers.csv");
                     else if (activeTab === "developers") exportData(filteredDevelopers, "developers.csv");
                     else if (activeTab === "resellers") exportData(filteredResellers, "resellers.csv");
+                    else if (activeTab === "licenses") exportData(filteredLicenses, "licenses.csv");
                   }}
                   className="px-4 py-2 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded-lg hover:shadow-lg hover:shadow-[#00FF9C]/50 transition flex items-center gap-2"
                 >
@@ -1099,6 +1366,241 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {activeTab === "licenses" && (
+            <div className="space-y-6">
+              {/* QUICK STATS */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-500/30 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Aktiv</p>
+                  <p className="text-3xl font-black text-green-400">{stats.activeLicenses}</p>
+                </div>
+                <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-red-500/30 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Abgelaufen</p>
+                  <p className="text-3xl font-black text-red-400">{stats.expiredLicenses}</p>
+                </div>
+                <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-orange-500/30 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">⚠️ Läuft bald ab</p>
+                  <p className="text-3xl font-black text-orange-400">{expiringSoon}</p>
+                  <p className="text-xs text-gray-500 mt-1">Innerhalb 7 Tage</p>
+                </div>
+                <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-purple-500/30 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Gesamt</p>
+                  <p className="text-3xl font-black text-purple-400">{stats.totalLicenses}</p>
+                </div>
+              </div>
+
+              {/* BULK ACTIONS */}
+              {selectedLicenses.size > 0 && godMode && (
+                <div className="bg-gradient-to-r from-red-600/10 to-red-600/5 border border-red-600 rounded-xl p-4">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                      <p className="font-bold text-red-400">{selectedLicenses.size} Lizenzen ausgewählt</p>
+                      <p className="text-xs text-gray-400">Bulk Actions (GOD MODE)</p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => handleBulkAction("activate")}
+                        className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold transition"
+                      >
+                        ✅ Aktivieren
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction("suspend")}
+                        className="px-3 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-sm font-bold transition"
+                      >
+                        ⏸️ Suspendieren
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction("extend")}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold transition"
+                      >
+                        📅 +30 Tage
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction("delete")}
+                        className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold transition"
+                      >
+                        🗑️ Löschen
+                      </button>
+                      <button
+                        onClick={() => setSelectedLicenses(new Set())}
+                        className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm font-bold transition"
+                      >
+                        Abbrechen
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <FaKey className="text-orange-400" />
+                  Lizenzen ({filteredLicenses.length})
+                </h2>
+                {godMode && (
+                  <button
+                    onClick={toggleAllLicenses}
+                    className="px-4 py-2 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-lg text-sm font-bold transition"
+                  >
+                    {selectedLicenses.size === filteredLicenses.length ? "Alle abwählen" : "Alle auswählen"}
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                {filteredLicenses.map((license) => {
+                  const isExpired = license.expires_at && new Date(license.expires_at) < new Date();
+                  const isExpiringSoon = license.expires_at && !isExpired && (() => {
+                    const daysUntil = (new Date(license.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+                    return daysUntil > 0 && daysUntil <= 7;
+                  })();
+
+                  return (
+                    <div
+                      key={license.id}
+                      className={`bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border rounded-xl p-4 hover:shadow-xl transition-all ${
+                        license.status === "active"
+                          ? "border-green-500/30 hover:border-green-500"
+                          : license.status === "expired"
+                          ? "border-red-500/30 hover:border-red-500"
+                          : "border-orange-500/30 hover:border-orange-500"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex items-start gap-3 flex-1">
+                          {godMode && (
+                            <input
+                              type="checkbox"
+                              checked={selectedLicenses.has(license.id)}
+                              onChange={() => toggleLicenseSelection(license.id)}
+                              className="mt-1 w-5 h-5 cursor-pointer"
+                            />
+                          )}
+
+                          <div className={`p-2 rounded-lg ${
+                            license.status === "active"
+                              ? "bg-green-600/20"
+                              : license.status === "expired"
+                              ? "bg-red-600/20"
+                              : "bg-orange-600/20"
+                          }`}>
+                            <FaKey className={`text-xl ${
+                              license.status === "active"
+                                ? "text-green-400"
+                                : license.status === "expired"
+                                ? "text-red-400"
+                                : "text-orange-400"
+                            }`} />
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <p className="font-mono text-sm font-bold">{license.license_key}</p>
+                              <button
+                                onClick={() => copyToClipboard(license.license_key)}
+                                className="text-xs text-[#00FF9C] hover:underline"
+                              >
+                                <FaCopy />
+                              </button>
+                              <span className={`text-xs px-2 py-1 rounded font-bold ${
+                                license.status === "active"
+                                  ? "bg-green-600/20 text-green-400"
+                                  : license.status === "expired"
+                                  ? "bg-red-600/20 text-red-400"
+                                  : "bg-orange-600/20 text-orange-400"
+                              }`}>
+                                {license.status.toUpperCase()}
+                              </span>
+                              {isExpiringSoon && (
+                                <span className="text-xs px-2 py-1 rounded bg-orange-600/20 text-orange-400 font-bold animate-pulse">
+                                  ⚠️ LÄUFT BALD AB
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                              <div>
+                                <p className="text-gray-500">Produkt</p>
+                                <p className="font-bold">{license.product_name}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Kunde</p>
+                                <p className="font-bold">{license.customer_name || "N/A"}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Erstellt</p>
+                                <p className="font-bold">{new Date(license.created_at).toLocaleDateString("de-DE")}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500">Läuft ab</p>
+                                <p className={`font-bold ${isExpiringSoon ? "text-orange-400" : ""}`}>
+                                  {license.expires_at ? new Date(license.expires_at).toLocaleDateString("de-DE") : "Nie"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {license.customer_email && (
+                              <p className="text-xs text-gray-400 mt-1">📧 {license.customer_email}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => {
+                              setSelectedLicense(license);
+                              setShowLicenseModal(true);
+                            }}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold flex items-center gap-2 transition"
+                          >
+                            <FaEye /> Details
+                          </button>
+
+                          {godMode && (
+                            <>
+                              {license.status !== "active" && (
+                                <button
+                                  onClick={() => handleLicenseAction("activate", license)}
+                                  className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold transition"
+                                >
+                                  ✅ Aktivieren
+                                </button>
+                              )}
+                              {license.status === "active" && (
+                                <button
+                                  onClick={() => handleLicenseAction("suspend", license)}
+                                  className="px-3 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-sm font-bold transition"
+                                >
+                                  ⏸️ Suspend
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleLicenseAction("extend", license)}
+                                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-bold transition"
+                              >
+                                📅 +30 Tage
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredLicenses.length === 0 && (
+                <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-12 text-center">
+                  <FaKey className="text-6xl text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400 text-lg">
+                    {searchQuery || licenseFilter !== "all" ? "Keine Lizenzen gefunden" : "Noch keine Lizenzen"}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "transactions" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1387,6 +1889,157 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* LICENSE DETAILS MODAL */}
+      {showLicenseModal && selectedLicense && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-2xl max-w-3xl w-full p-6 shadow-2xl">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <FaKey className="text-orange-400" />
+                  License Details
+                </h2>
+                <p className="text-sm text-gray-400 mt-1">ID: {selectedLicense.id}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowLicenseModal(false);
+                  setSelectedLicense(null);
+                }}
+                className="text-gray-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* LICENSE KEY */}
+              <div className="bg-[#2C2C34] rounded-xl p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">License Key</p>
+                    <p className="font-mono text-lg font-bold">{selectedLicense.license_key}</p>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(selectedLicense.license_key)}
+                    className="px-3 py-2 bg-[#00FF9C] text-[#0E0E12] font-bold rounded-lg hover:shadow-lg transition"
+                  >
+                    <FaCopy />
+                  </button>
+                </div>
+              </div>
+
+              {/* STATUS & INFO GRID */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="bg-[#2C2C34] rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Status</p>
+                  <p className={`font-bold text-lg ${
+                    selectedLicense.status === "active" ? "text-green-400" :
+                    selectedLicense.status === "expired" ? "text-red-400" :
+                    "text-orange-400"
+                  }`}>
+                    {selectedLicense.status.toUpperCase()}
+                  </p>
+                </div>
+
+                <div className="bg-[#2C2C34] rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Type</p>
+                  <p className="font-bold">{selectedLicense.type || "Standard"}</p>
+                </div>
+
+                <div className="bg-[#2C2C34] rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Erstellt</p>
+                  <p className="font-bold">{new Date(selectedLicense.created_at).toLocaleDateString("de-DE")}</p>
+                </div>
+
+                <div className="bg-[#2C2C34] rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Läuft ab</p>
+                  <p className="font-bold">
+                    {selectedLicense.expires_at ? new Date(selectedLicense.expires_at).toLocaleDateString("de-DE") : "Nie"}
+                  </p>
+                </div>
+
+                <div className="bg-[#2C2C34] rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Max Aktivierungen</p>
+                  <p className="font-bold">{selectedLicense.max_activations || "Unlimited"}</p>
+                </div>
+
+                <div className="bg-[#2C2C34] rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Aktuelle Aktivierungen</p>
+                  <p className="font-bold">{selectedLicense.current_activations || 0}</p>
+                </div>
+              </div>
+
+              {/* PRODUCT & CUSTOMER INFO */}
+              <div className="bg-[#2C2C34] rounded-xl p-4">
+                <p className="text-xs text-gray-400 mb-2">Produkt</p>
+                <p className="font-bold text-lg">{selectedLicense.product_name}</p>
+                <p className="text-xs text-gray-500 mt-1">Product ID: {selectedLicense.product_id}</p>
+              </div>
+
+              <div className="bg-[#2C2C34] rounded-xl p-4">
+                <p className="text-xs text-gray-400 mb-2">Kunde</p>
+                <p className="font-bold text-lg">{selectedLicense.customer_name || "N/A"}</p>
+                {selectedLicense.customer_email && (
+                  <p className="text-sm text-gray-400 mt-1">📧 {selectedLicense.customer_email}</p>
+                )}
+                {selectedLicense.customer_id && (
+                  <p className="text-xs text-gray-500 mt-1">Customer ID: {selectedLicense.customer_id}</p>
+                )}
+              </div>
+
+              {/* ACTIONS */}
+              {godMode && (
+                <div className="bg-gradient-to-r from-red-600/10 to-red-600/5 border border-red-600 rounded-xl p-4">
+                  <p className="text-sm text-red-400 font-bold mb-3">🔥 GOD MODE ACTIONS</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedLicense.status !== "active" && (
+                      <button
+                        onClick={() => handleLicenseAction("activate", selectedLicense)}
+                        className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-bold transition"
+                      >
+                        ✅ Aktivieren
+                      </button>
+                    )}
+                    {selectedLicense.status === "active" && (
+                      <button
+                        onClick={() => handleLicenseAction("suspend", selectedLicense)}
+                        className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg font-bold transition"
+                      >
+                        ⏸️ Suspendieren
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleLicenseAction("extend", selectedLicense)}
+                      className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold transition"
+                    >
+                      📅 +30 Tage verlängern
+                    </button>
+                    <button
+                      onClick={() => handleLicenseAction("delete", selectedLicense)}
+                      className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold transition"
+                    >
+                      🗑️ Löschen
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* CLOSE BUTTON */}
+              <button
+                onClick={() => {
+                  setShowLicenseModal(false);
+                  setSelectedLicense(null);
+                }}
+                className="w-full px-4 py-3 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-lg font-bold transition"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
