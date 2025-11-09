@@ -17,6 +17,23 @@ export interface ValidationResult {
 }
 
 /**
+ * Normalizes a license key for searching
+ * - Removes whitespace
+ * - Converts to uppercase
+ * - Returns both original and normalized versions
+ */
+function normalizeKey(key: string): { original: string; normalized: string; withoutDashes: string } {
+  const trimmed = key.trim().toUpperCase();
+  const withoutDashes = trimmed.replace(/-/g, '');
+
+  return {
+    original: trimmed,
+    normalized: trimmed,
+    withoutDashes: withoutDashes
+  };
+}
+
+/**
  * Validates a license key across all sources
  * Works with:
  * - licenses table (Developer licenses)
@@ -32,42 +49,65 @@ export async function validateLicenseUniversal(
   }
 ): Promise<ValidationResult> {
   try {
-    if (!license_key || license_key.length < 8) {
+    if (!license_key || license_key.trim().length < 8) {
       return {
         valid: false,
         error: 'Ungültiger License Key Format'
       };
     }
 
-    console.log('🔍 Validating license key:', license_key.substring(0, 10) + '...');
+    // Normalize key for searching
+    const keyVariants = normalizeKey(license_key);
+    console.log('🔍 Validating license key:', keyVariants.normalized.substring(0, 15) + '...');
+    console.log('🔍 Key variants:', keyVariants);
 
     // ===== STRATEGIE 1: Suche in "licenses" Tabelle =====
     let licenseData = null;
     let source: 'licenses' | 'customer_keys' = 'licenses';
 
+    // Helper function to search with key variants
+    async function searchLicensesTable(productId?: string) {
+      const selectQuery = `
+        id,
+        license_key,
+        status,
+        type,
+        expires_at,
+        max_activations,
+        organization_id,
+        product_id,
+        customer_id,
+        product:products(id, name),
+        customer:customers(id, name, email),
+        activations:license_activations(id, machine_id, activated_at, last_seen)
+      `;
+
+      // Try with original key
+      let query = supabase.from('licenses').select(selectQuery);
+      if (productId) query = query.eq('product_id', productId);
+
+      const { data: data1 } = await query.eq('license_key', keyVariants.normalized).maybeSingle();
+      if (data1) return data1;
+
+      // Try without dashes
+      query = supabase.from('licenses').select(selectQuery);
+      if (productId) query = query.eq('product_id', productId);
+      const { data: data2 } = await query.eq('license_key', keyVariants.withoutDashes).maybeSingle();
+      if (data2) return data2;
+
+      // Try case-insensitive search (ilike)
+      query = supabase.from('licenses').select(selectQuery);
+      if (productId) query = query.eq('product_id', productId);
+      const { data: data3 } = await query.ilike('license_key', keyVariants.normalized).maybeSingle();
+      if (data3) return data3;
+
+      return null;
+    }
+
     // Mit product_id falls vorhanden
     if (options?.product_id) {
-      const { data, error } = await supabase
-        .from('licenses')
-        .select(`
-          id,
-          license_key,
-          status,
-          type,
-          expires_at,
-          max_activations,
-          organization_id,
-          product_id,
-          customer_id,
-          product:products(id, name),
-          customer:customers(id, name, email),
-          activations:license_activations(id, machine_id, activated_at, last_seen)
-        `)
-        .eq('license_key', license_key)
-        .eq('product_id', options.product_id)
-        .maybeSingle();
-
-      if (data && !error) {
+      const data = await searchLicensesTable(options.product_id);
+      if (data) {
         licenseData = data;
         console.log('✅ Found in licenses table (with product_id)');
       }
@@ -75,26 +115,8 @@ export async function validateLicenseUniversal(
 
     // Ohne product_id
     if (!licenseData) {
-      const { data, error } = await supabase
-        .from('licenses')
-        .select(`
-          id,
-          license_key,
-          status,
-          type,
-          expires_at,
-          max_activations,
-          organization_id,
-          product_id,
-          customer_id,
-          product:products(id, name),
-          customer:customers(id, name, email),
-          activations:license_activations(id, machine_id, activated_at, last_seen)
-        `)
-        .eq('license_key', license_key)
-        .maybeSingle();
-
-      if (data && !error) {
+      const data = await searchLicensesTable();
+      if (data) {
         licenseData = data;
         console.log('✅ Found in licenses table (without product_id)');
       }
@@ -102,25 +124,36 @@ export async function validateLicenseUniversal(
 
     // ===== STRATEGIE 2: Suche in "customer_keys" Tabelle =====
     if (!licenseData) {
-      const { data, error } = await supabase
-        .from('customer_keys')
-        .select(`
+      const selectQuery = `
+        id,
+        key_code,
+        status,
+        created_at,
+        expires_at,
+        reseller_products(
           id,
-          key_code,
-          status,
-          created_at,
-          expires_at,
-          reseller_products(
-            id,
-            product_id,
-            reseller_id,
-            products(id, name)
-          )
-        `)
-        .eq('key_code', license_key)
-        .maybeSingle();
+          product_id,
+          reseller_id,
+          products(id, name)
+        )
+      `;
 
-      if (data && !error) {
+      // Try with original key
+      let { data } = await supabase.from('customer_keys').select(selectQuery).eq('key_code', keyVariants.normalized).maybeSingle();
+
+      // Try without dashes
+      if (!data) {
+        const result = await supabase.from('customer_keys').select(selectQuery).eq('key_code', keyVariants.withoutDashes).maybeSingle();
+        data = result.data;
+      }
+
+      // Try case-insensitive
+      if (!data) {
+        const result = await supabase.from('customer_keys').select(selectQuery).ilike('key_code', keyVariants.normalized).maybeSingle();
+        data = result.data;
+      }
+
+      if (data) {
         // Konvertiere customer_keys Format
         licenseData = {
           id: data.id,

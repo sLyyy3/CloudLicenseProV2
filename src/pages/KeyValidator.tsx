@@ -10,7 +10,9 @@ export default function KeyValidator() {
   const [loading, setLoading] = useState(false);
 
   async function handleValidateKey() {
-    if (!searchKey.trim()) {
+    const normalizedKey = searchKey.trim().toUpperCase();
+
+    if (!normalizedKey) {
       setValidationResult({
         valid: false,
         error: "Bitte gib einen License Key ein!"
@@ -22,8 +24,8 @@ export default function KeyValidator() {
     setValidationResult(null);
 
     try {
-      console.log("🔍 Validating key:", searchKey);
-      const result = await validateLicenseUniversal(searchKey);
+      console.log("🔍 Validating key:", normalizedKey);
+      const result = await validateLicenseUniversal(normalizedKey);
       setValidationResult(result);
     } catch (err: any) {
       console.error("❌ Validation failed:", err);
