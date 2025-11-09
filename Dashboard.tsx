@@ -51,23 +51,9 @@ type License = {
   customer_id: string;
 };
 
-type Customer = {
-  id: string;
-  name: string;
-  email: string;
-};
-
-type Product = {
-  id: string;
-  name: string;
-};
-
-type Stats = {
-  total: number;
-  active: number;
-  expiring: number;
-  expired: number;
-};
+type Customer = { id: string; name: string; email: string };
+type Product = { id: string; name: string };
+type Stats = { total: number; active: number; expiring: number; expired: number };
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -79,20 +65,8 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats>({
-    total: 0,
-    active: 0,
-    expiring: 0,
-    expired: 0,
-  });
-
-  // Animated display stats
-  const [displayStats, setDisplayStats] = useState<Stats>({
-    total: 0,
-    active: 0,
-    expiring: 0,
-    expired: 0,
-  });
+  const [stats, setStats] = useState<Stats>({ total: 0, active: 0, expiring: 0, expired: 0 });
+  const [displayStats, setDisplayStats] = useState<Stats>({ total: 0, active: 0, expiring: 0, expired: 0 });
 
   // Filter & Search
   const { filters, setFilters, filtered } = useAdvancedFilter(licenses);
@@ -127,7 +101,41 @@ export default function Dashboard() {
   });
   const [creatingLicense, setCreatingLicense] = useState(false);
 
-  // Animate stats
+  // ===== LOAD ORGANISATION & DATA =====
+  useEffect(() => {
+    async function init() {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const orgId = (data.user?.user_metadata as any)?.organization_id;
+
+        if (!orgId) {
+          openDialog({
+            type: "error",
+            title: "❌ Organisation fehlt",
+            message: "Bitte melde dich ab und neu an",
+            closeButton: "OK",
+          });
+          return;
+        }
+
+        setOrganizationId(orgId);
+
+        // Lade alle Daten
+        await loadData(orgId);
+      } catch (err: any) {
+        console.error("Fehler beim Laden der Organisation:", err);
+        openDialog({
+          type: "error",
+          title: "❌ Fehler",
+          message: err.message || "Daten konnten nicht geladen werden",
+          closeButton: "OK",
+        });
+      }
+    }
+    init();
+  }, []);
+
+  // ===== Animate Stats =====
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (!loading) {
@@ -143,92 +151,15 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [stats, loading]);
 
-  // ===== LOAD DATA =====
-  useEffect(() => {
-    async function init() {
-      const { data } = await supabase.auth.getUser();
-      const orgId = (data.user?.user_metadata as any)?.organization_id;
-
-      if (!orgId) {
-        openDialog({
-          type: "error",
-          title: "❌ Organisation fehlt",
-          message: "Bitte melde dich ab und neu an",
-          closeButton: "OK",
-        });
-        return;
-      }
-
-      setOrganizationId(orgId);
-      await loadData(orgId);
-    }
-    init();
-  }, []);
-
-  // Create Single License Handler
-  async function handleCreateLicense() {
-    if (!createForm.product_id || !createForm.customer_id) {
-      openDialog({
-        type: "warning",
-        title: "⚠️ Felder erforderlich",
-        message: "Bitte wähle Produkt und Kunde",
-        closeButton: "OK",
-      });
-      return;
-    }
-
-    setCreatingLicense(true);
-    try {
-      const licenseKey = `LIC-${Math.random().toString(36).substring(2, 15).toUpperCase()}`;
-
-      const { error } = await supabase.from("licenses").insert({
-        license_key: licenseKey,
-        product_id: createForm.product_id,
-        customer_id: createForm.customer_id,
-        organization_id: organizationId,
-        status: "active",
-        type: createForm.type,
-        max_activations: createForm.max_activations,
-        expires_at: createForm.expires_at || null,
-      });
-
-      if (error) throw error;
-
-      openDialog({
-        type: "success",
-        title: "✅ Lizenz erstellt!",
-        message: `Lizenzschlüssel: ${licenseKey}`,
-        closeButton: "OK",
-      });
-
-      setShowCreateLicenseModal(false);
-      setCreateForm({
-        product_id: "",
-        customer_id: "",
-        type: "single",
-        max_activations: 1,
-        expires_at: "",
-      });
-
-      if (organizationId) await loadData(organizationId);
-    } catch (err: any) {
-      openDialog({
-        type: "error",
-        title: "❌ Fehler",
-        message: err.message || "Lizenz konnte nicht erstellt werden",
-        closeButton: "OK",
-      });
-    } finally {
-      setCreatingLicense(false);
-    }
-  }
-
+  // ===== Load Data Function =====
   async function loadData(orgId: string) {
     setLoading(true);
     try {
       const { data: licensesData } = await supabase
         .from("licenses")
-        .select(`id,license_key,status,type,expires_at,max_activations,product_id,customer_id,created_at,products(name),customers(name, email)`)
+        .select(
+          "id,license_key,status,type,expires_at,max_activations,current_activations,product_id,customer_id,created_at,products(name),customers(name,email)"
+        )
         .eq("organization_id", orgId);
 
       if (licensesData) {
@@ -264,10 +195,12 @@ export default function Dashboard() {
       if (productsData) setProducts(productsData);
     } catch (err) {
       console.error("Error loading data:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
+  // ===== Calculate Stats =====
   function calculateStats(licenses: License[]) {
     const now = new Date();
     let active = 0;
@@ -279,24 +212,17 @@ export default function Dashboard() {
         active++;
         if (l.expires_at) {
           const expiryDate = new Date(l.expires_at);
-          const daysUntil = Math.ceil(
-            (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-          );
+          const daysUntil = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           if (daysUntil <= 30 && daysUntil > 0) expiring++;
         }
       }
       if (l.status === "expired") expired++;
     });
 
-    setStats({
-      total: licenses.length,
-      active,
-      expiring,
-      expired,
-    });
+    setStats({ total: licenses.length, active, expiring, expired });
   }
 
-  // Copy to Clipboard
+  // ===== Copy License Key =====
   async function copyLicenseKey(key: string) {
     try {
       await navigator.clipboard.writeText(key);
@@ -311,35 +237,24 @@ export default function Dashboard() {
     }
   }
 
-  // Edit License
+  // ===== Edit License =====
   async function handleEditLicense() {
     if (!selectedLicense) return;
-
     const { error } = await supabase
       .from("licenses")
       .update({ status: editStatus })
       .eq("id", selectedLicense.id);
 
     if (error) {
-      openDialog({
-        type: "error",
-        title: "❌ Fehler",
-        message: error.message,
-        closeButton: "OK",
-      });
+      openDialog({ type: "error", title: "❌ Fehler", message: error.message, closeButton: "OK" });
     } else {
-      openDialog({
-        type: "success",
-        title: "✅ Aktualisiert",
-        message: "License wurde aktualisiert",
-        closeButton: "OK",
-      });
+      openDialog({ type: "success", title: "✅ Aktualisiert", message: "License wurde aktualisiert", closeButton: "OK" });
       setShowEditModal(false);
       if (organizationId) await loadData(organizationId);
     }
   }
 
-  // Delete License
+  // ===== Delete License =====
   async function handleDeleteLicense(licenseId: string) {
     const confirmed = window.confirm(
       "⚠️ Möchtest du diese License wirklich löschen? Das kann nicht rückgängig gemacht werden!"
@@ -349,19 +264,9 @@ export default function Dashboard() {
     const { error } = await supabase.from("licenses").delete().eq("id", licenseId);
 
     if (error) {
-      openDialog({
-        type: "error",
-        title: "❌ Fehler",
-        message: error.message,
-        closeButton: "OK",
-      });
+      openDialog({ type: "error", title: "❌ Fehler", message: error.message, closeButton: "OK" });
     } else {
-      openDialog({
-        type: "success",
-        title: "✅ Gelöscht",
-        message: "License wurde gelöscht",
-        closeButton: "OK",
-      });
+      openDialog({ type: "success", title: "✅ Gelöscht", message: "License wurde gelöscht", closeButton: "OK" });
       if (organizationId) await loadData(organizationId);
     }
   }
