@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx - KOMPLETT ÜBERARBEITETE VERSION V2 MIT BULK OPERATIONS + HOME BUTTON
+// src/pages/Dashboard.tsx - EPIC UPGRADE DES ORIGINAL DASHBOARDS MIT ANIMATIONEN
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -22,6 +22,10 @@ import {
   FaCheck,
   FaEye,
   FaFileExport,
+  FaFire,
+  FaRocket,
+  FaTrophy,
+  FaLightbulb,
 } from "react-icons/fa";
 import Sidebar from "../components/Sidebar";
 import { useDialog } from "../components/Dialog";
@@ -82,6 +86,14 @@ export default function Dashboard() {
     expired: 0,
   });
 
+  // Animated display stats
+  const [displayStats, setDisplayStats] = useState<Stats>({
+    total: 0,
+    active: 0,
+    expiring: 0,
+    expired: 0,
+  });
+
   // Filter & Search
   const { filters, setFilters, filtered } = useAdvancedFilter(licenses);
   const pagination = usePagination(filtered, 20);
@@ -104,8 +116,7 @@ export default function Dashboard() {
   const [selectedLicenses, setSelectedLicenses] = useState<Set<string>>(new Set());
   const [showBulkActionsBar, setShowBulkActionsBar] = useState(false);
 
-
-  // ✅ Create Single License Modal State
+  // Create Single License Modal State
   const [showCreateLicenseModal, setShowCreateLicenseModal] = useState(false);
   const [createForm, setCreateForm] = useState({
     product_id: "",
@@ -115,6 +126,22 @@ export default function Dashboard() {
     expires_at: "",
   });
   const [creatingLicense, setCreatingLicense] = useState(false);
+
+  // Animate stats
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (!loading) {
+      interval = setInterval(() => {
+        setDisplayStats((prev) => ({
+          total: Math.min(prev.total + Math.ceil((stats.total - prev.total) / 10), stats.total),
+          active: Math.min(prev.active + Math.ceil((stats.active - prev.active) / 10), stats.active),
+          expiring: Math.min(prev.expiring + Math.ceil((stats.expiring - prev.expiring) / 10), stats.expiring),
+          expired: Math.min(prev.expired + Math.ceil((stats.expired - prev.expired) / 10), stats.expired),
+        }));
+      }, 50);
+    }
+    return () => clearInterval(interval);
+  }, [stats, loading]);
 
   // ===== LOAD DATA =====
   useEffect(() => {
@@ -138,8 +165,7 @@ export default function Dashboard() {
     init();
   }, []);
 
-
-  // ✅ Create Single License Handler
+  // Create Single License Handler
   async function handleCreateLicense() {
     if (!createForm.product_id || !createForm.customer_id) {
       openDialog({
@@ -153,31 +179,20 @@ export default function Dashboard() {
 
     setCreatingLicense(true);
     try {
-      console.log("🔑 Creating single license...");
-      
-      // Generate random license key
       const licenseKey = `LIC-${Math.random().toString(36).substring(2, 15).toUpperCase()}`;
 
-      const { error } = await supabase
-        .from("licenses")
-        .insert({
-          license_key: licenseKey,
-          product_id: createForm.product_id,
-          customer_id: createForm.customer_id,
-          organization_id: organizationId,
-          status: "active",
-          type: createForm.type,
-          max_activations: createForm.max_activations,
-          current_activations: 0,
-          expires_at: createForm.expires_at || null,
-        });
+      const { error } = await supabase.from("licenses").insert({
+        license_key: licenseKey,
+        product_id: createForm.product_id,
+        customer_id: createForm.customer_id,
+        organization_id: organizationId,
+        status: "active",
+        type: createForm.type,
+        max_activations: createForm.max_activations,
+        expires_at: createForm.expires_at || null,
+      });
 
-      if (error) {
-        console.error("❌ Error:", error);
-        throw error;
-      }
-
-      console.log("✅ License created");
+      if (error) throw error;
 
       openDialog({
         type: "success",
@@ -194,10 +209,9 @@ export default function Dashboard() {
         max_activations: 1,
         expires_at: "",
       });
-      
+
       if (organizationId) await loadData(organizationId);
     } catch (err: any) {
-      console.error("❌ Error creating license:", err);
       openDialog({
         type: "error",
         title: "❌ Fehler",
@@ -209,19 +223,12 @@ export default function Dashboard() {
     }
   }
 
-
   async function loadData(orgId: string) {
     setLoading(true);
     try {
       const { data: licensesData } = await supabase
         .from("licenses")
-        .select(
-          `
-          *,
-          products(name),
-          customers(name, email)
-        `
-        )
+        .select(`id,license_key,status,type,expires_at,max_activations,product_id,customer_id,created_at,products(name),customers(name, email)`)
         .eq("organization_id", orgId);
 
       if (licensesData) {
@@ -339,10 +346,7 @@ export default function Dashboard() {
     );
     if (!confirmed) return;
 
-    const { error } = await supabase
-      .from("licenses")
-      .delete()
-      .eq("id", licenseId);
+    const { error } = await supabase.from("licenses").delete().eq("id", licenseId);
 
     if (error) {
       openDialog({
@@ -393,13 +397,10 @@ export default function Dashboard() {
           status: bulkStatus,
           type: bulkType,
           max_activations: bulkType === "concurrent" ? 5 : 1,
-          current_activations: 0,
         });
       }
 
-      const { error } = await supabase
-        .from("licenses")
-        .insert(newLicenses);
+      const { error } = await supabase.from("licenses").insert(newLicenses);
 
       if (error) throw error;
 
@@ -478,7 +479,12 @@ export default function Dashboard() {
 
   // Select All on current page
   function toggleSelectAll() {
-    const pageIds = new Set(pagination.currentItems.map((l) => l.id));
+    const items = (pagination as any).currentPage || 
+                 (pagination as any).items || 
+                 (pagination as any).paginatedItems ||
+                 [];
+    const pageIds = new Set(items.filter((l: any) => l.id).map((l: any) => l.id));
+    
     if (selectedLicenses.size === pageIds.size) {
       setSelectedLicenses(new Set());
       setShowBulkActionsBar(false);
@@ -498,7 +504,7 @@ export default function Dashboard() {
         );
       case "inactive":
         return (
-          <span className="px-3 py-1 bg-yellow-600/20 text-yellow-400 rounded-lg text-xs font-bold flex items-center gap-1">
+          <span className="px-3 py-1 bg-gray-600/20 text-gray-400 rounded-lg text-xs font-bold flex items-center gap-1">
             <FaClock /> Inactive
           </span>
         );
@@ -510,338 +516,342 @@ export default function Dashboard() {
         );
       case "revoked":
         return (
-          <span className="px-3 py-1 bg-gray-600/20 text-gray-400 rounded-lg text-xs font-bold">
-            Revoked
+          <span className="px-3 py-1 bg-purple-600/20 text-purple-400 rounded-lg text-xs font-bold flex items-center gap-1">
+            <FaCheck /> Revoked
           </span>
         );
       default:
-        return status;
+        return null;
     }
   }
 
   if (loading) {
     return (
-      <div className="flex">
-        <Sidebar />
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0] min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="loader mb-4"></div>
-            <p>⏳ Lädt Licenses...</p>
+      <div className="min-h-screen bg-gradient-to-br from-[#0E0E12] via-[#1A1A1F] to-[#0E0E12] text-[#E0E0E0] flex items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4">
+            <div className="inline-block animate-spin text-4xl">🚀</div>
           </div>
-        </main>
+          <p className="text-lg font-bold">Lädt...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      {DialogComponent}
+      <Sidebar />
 
-      <div className="flex">
-        <Sidebar />
+      <div className="ml-0 md:ml-64 min-h-screen bg-gradient-to-br from-[#0E0E12] via-[#1A1A1F] to-[#0E0E12] text-[#E0E0E0] p-6">
+        {/* EPIC HERO SECTION */}
+        <div className="mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#00FF9C]/10 border border-[#00FF9C] rounded-full mb-4">
+            <FaFire className="text-[#00FF9C] animate-pulse" />
+            <span className="text-sm font-bold text-[#00FF9C]">Dashboard aktiv</span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-black mb-3 bg-gradient-to-r from-[#00FF9C] via-purple-400 to-blue-400 bg-clip-text text-transparent">
+            🎯 Lizenz-Dashboard
+          </h1>
+          <p className="text-gray-400 text-lg">Verwalte all deine Keys, Kunden und Produkte an einem Ort</p>
+        </div>
 
-        <main className="flex-1 bg-[#0E0E12] text-[#E0E0E0]">
-          {/* HEADER - WITH HOME BUTTON */}
-          <div className="border-b border-[#2C2C34] p-8 sticky top-0 z-40 bg-[#0E0E12]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate("/")}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#00FF9C] text-[#0E0E12] rounded-lg font-bold hover:bg-[#00cc80] transition"
-                  title="Zurück zur Landing Page"
-                >
-                  <FaHome /> Home
-                </button>
-                <div>
-                  <h1 className="text-4xl font-extrabold flex items-center gap-2">
-                    <FaKey className="text-[#00FF9C]" />
-                    Deine Licenses
-                  </h1>
-                  <p className="text-gray-400 mt-2">
-                    Verwalte und überwache alle deine Lizenzschlüssel
-                  </p>
-                </div>
+        {/* EPIC STATS CARDS MIT ANIMATIONEN */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {/* Total Licenses */}
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-xl p-6 hover:border-[#00FF9C] transition group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#00FF9C]/5 to-transparent opacity-0 group-hover:opacity-100 transition" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-gray-400 font-semibold">Gesamt Keys</h3>
+                <div className="text-3xl">🔑</div>
               </div>
-
-              <button
-                onClick={() => setShowCreateLicenseModal(true)}
-                className="px-4 py-3 bg-green-600 hover:bg-green-700 rounded-lg font-bold flex items-center gap-2 transition"
-              >
-                <FaPlus /> Lizenz erstellen
-              </button>
-              <button
-                onClick={() => setShowBulkGenerateModal(true)}
-                className="px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold flex items-center gap-2 transition"
-              >
-                <FaPlus /> Bulk Generate
-              </button>
-            </div>
-
-            {/* STATS */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">Gesamt Licenses</p>
-                <p className="text-3xl font-bold text-[#00FF9C]">{stats.total}</p>
-              </div>
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">Aktiv</p>
-                <p className="text-3xl font-bold text-green-400">{stats.active}</p>
-              </div>
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">Ablaufen bald</p>
-                <p className="text-3xl font-bold text-yellow-400">{stats.expiring}</p>
-              </div>
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-4">
-                <p className="text-gray-400 text-sm">Abgelaufen</p>
-                <p className="text-3xl font-bold text-red-400">{stats.expired}</p>
+              <div className="text-4xl font-black text-[#00FF9C] mb-2">{displayStats.total}</div>
+              <div className="flex items-center gap-2 text-sm text-green-400">
+                <FaRocket /> +{displayStats.active} aktiv
               </div>
             </div>
           </div>
 
-          {/* SEARCH & FILTER */}
-          <div className="border-b border-[#2C2C34] p-8">
-            <div className="flex gap-4 flex-wrap items-end">
-              {/* Search Input */}
-              <div className="flex-1 min-w-64">
-                <label className="block text-sm text-gray-400 mb-2">🔍 Suche</label>
-                <div className="relative">
-                  <FaSearch className="absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="License Key, Kunde, Produkt..."
-                    value={filters.searchQuery || ""}
-                    onChange={(e) =>
-                      setFilters({ ...filters, searchQuery: e.target.value })
-                    }
-                    className="w-full pl-10 pr-4 py-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
-                  />
-                </div>
+          {/* Active Licenses */}
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-xl p-6 hover:border-green-400 transition group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-gray-400 font-semibold">Aktiv</h3>
+                <div className="text-3xl">✅</div>
               </div>
+              <div className="text-4xl font-black text-green-400 mb-2">{displayStats.active}</div>
+              <div className="w-full bg-[#2C2C34] rounded-full h-2 mt-4">
+                <div
+                  className="bg-green-400 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${stats.total ? (stats.active / stats.total) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
 
-              {/* Status Filter */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Status</label>
-                <select
-                  value={filters.statusFilter || ""}
+          {/* Expiring Soon */}
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-xl p-6 hover:border-yellow-400 transition group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-gray-400 font-semibold">Verfällt bald</h3>
+                <div className="text-3xl">⏰</div>
+              </div>
+              <div className="text-4xl font-black text-yellow-400 mb-2">{displayStats.expiring}</div>
+              <div className="text-sm text-yellow-300 mt-4">In den nächsten 30 Tagen</div>
+            </div>
+          </div>
+
+          {/* Expired */}
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-xl p-6 hover:border-red-400 transition group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-gray-400 font-semibold">Abgelaufen</h3>
+                <div className="text-3xl">❌</div>
+              </div>
+              <div className="text-4xl font-black text-red-400 mb-2">{displayStats.expired}</div>
+              <div className="text-sm text-red-300 mt-4">Überprüfe diese!</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ACTION BUTTONS MIT GRADIENT */}
+        <div className="flex gap-4 mb-8 flex-wrap">
+          <button
+            onClick={() => setShowCreateLicenseModal(true)}
+            className="px-6 py-3 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded-lg hover:shadow-lg hover:shadow-[#00FF9C]/50 transition flex items-center gap-2"
+          >
+            <FaPlus /> Neue Lizenz
+          </button>
+          <button
+            onClick={() => setShowBulkGenerateModal(true)}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-purple-600/50 transition flex items-center gap-2"
+          >
+            <FaRocket /> Bulk Generieren
+          </button>
+          <button
+            onClick={() => setFilters({})}
+            className="px-6 py-3 bg-[#2C2C34] text-white font-bold rounded-lg hover:bg-[#3C3C44] transition flex items-center gap-2"
+          >
+            <FaSync /> Neu laden
+          </button>
+        </div>
+
+        {/* SEARCH & FILTER */}
+        <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-6 mb-8">
+          <div className="flex gap-4 flex-wrap items-end">
+            {/* Search Input */}
+            <div className="flex-1 min-w-64">
+              <label className="block text-sm text-gray-400 mb-2">🔍 Suche</label>
+              <div className="relative">
+                <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="License Key, Kunde, Produkt..."
+                  value={filters.searchQuery || ""}
                   onChange={(e) =>
-                    setFilters({
-                      ...filters,
-                      statusFilter: e.target.value || undefined,
-                    })
+                    setFilters({ ...filters, searchQuery: e.target.value })
                   }
-                  className="px-4 py-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
-                >
-                  <option value="">-- Alle --</option>
-                  <option value="active">✅ Aktiv</option>
-                  <option value="inactive">⏸️ Inaktiv</option>
-                  <option value="expired">❌ Abgelaufen</option>
-                </select>
+                  className="w-full pl-10 pr-4 py-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
+                />
               </div>
+            </div>
 
-              {/* Clear Filters */}
-              {(filters.searchQuery || filters.statusFilter) && (
-                <button
-                  onClick={() => setFilters({})}
-                  className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition text-sm font-bold"
-                >
-                  Clear
-                </button>
-              )}
-
-              {/* Export */}
-              <button
-                onClick={() => exportToCSV(filtered, "licenses_export.csv")}
-                disabled={filtered.length === 0}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm font-bold disabled:opacity-50 flex items-center gap-2 transition"
+            {/* Status Filter */}
+            <div>
+              <label className="block text-sm text-gray-400 mb-2">Status</label>
+              <select
+                value={filters.statusFilter || ""}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    statusFilter: e.target.value || undefined,
+                  })
+                }
+                className="px-4 py-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
               >
-                <FaDownload /> Export
+                <option value="">-- Alle --</option>
+                <option value="active">✅ Aktiv</option>
+                <option value="inactive">⏸️ Inaktiv</option>
+                <option value="expired">❌ Abgelaufen</option>
+              </select>
+            </div>
+
+            {/* Clear Filters */}
+            {(filters.searchQuery || filters.statusFilter) && (
+              <button
+                onClick={() => setFilters({})}
+                className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700 transition text-sm font-bold"
+              >
+                Clear
               </button>
-            </div>
-
-            <div className="text-sm text-gray-400 mt-4">
-              Zeige {pagination.currentItems.length} von {filtered.length} Licenses
-              {selectedLicenses.size > 0 && ` | ${selectedLicenses.size} ausgewählt`}
-            </div>
+            )}
           </div>
+        </div>
 
-          {/* BULK ACTIONS BAR */}
-          {showBulkActionsBar && (
-            <div className="bg-purple-600/20 border-t border-purple-600 border-b p-4 flex items-center justify-between">
-              <p className="font-bold text-purple-300">
-                ⚡ {selectedLicenses.size} Licenses ausgewählt
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setSelectedLicenses(new Set());
-                    setShowBulkActionsBar(false);
-                  }}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-bold transition"
-                >
-                  ❌ Abbrechen
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-bold transition"
-                >
-                  <FaTrash /> Alle löschen
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* LICENSES LIST */}
-          <div className="p-8">
-            {pagination.currentItems.length === 0 ? (
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-8 text-center text-gray-400">
-                <p className="text-lg font-semibold mb-2">Keine Licenses gefunden</p>
-                <p className="text-sm">Erstelle eine neue License um zu beginnen</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {/* Select All Checkbox */}
-                <div className="flex items-center gap-3 p-3 bg-[#1A1A1F] rounded">
-                  <input
-                    type="checkbox"
-                    checked={selectedLicenses.size === pagination.currentItems.length}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                  <p className="text-sm text-gray-400">
-                    Alle auf dieser Seite auswählen
-                  </p>
-                </div>
-
-                {/* License Items */}
-                {pagination.currentItems.map((license) => (
-                  <div
-                    key={license.id}
-                    className={`bg-[#1A1A1F] border rounded-lg p-4 hover:bg-[#2C2C34] transition flex items-center justify-between cursor-pointer ${
-                      selectedLicenses.has(license.id)
-                        ? "border-[#00FF9C]"
-                        : "border-[#2C2C34]"
-                    }`}
-                  >
-                    {/* Checkbox */}
+        {/* LICENSE TABLE */}
+        <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#2C2C34] border-b border-[#3C3C44]">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">
                     <input
                       type="checkbox"
-                      checked={selectedLicenses.has(license.id)}
-                      onChange={() => toggleLicenseSelection(license.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 cursor-pointer"
+                      onChange={toggleSelectAll}
+                      checked={(() => {
+                        const items = (pagination as any).currentPage || 
+                                     (pagination as any).items || 
+                                     (pagination as any).paginatedItems ||
+                                     [];
+                        return selectedLicenses.size === items.length && items.length > 0;
+                      })()}
+                      className="cursor-pointer"
                     />
-
-                    {/* License Info */}
-                    <div className="flex-1 ml-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <code className="bg-[#2C2C34] px-3 py-1 rounded font-mono text-sm text-[#00FF9C]">
-                          {license.license_key}
-                        </code>
-                        {getStatusBadge(license.status)}
-                        <span className="text-xs bg-[#2C2C34] px-2 py-1 rounded text-gray-300">
-                          {license.type}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-400">Produkt:</p>
-                          <p className="font-bold">{license.product_name}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Kunde:</p>
-                          <p className="font-bold">{license.customer_name}</p>
-                          <p className="text-xs text-gray-500">{license.customer_email}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400">Aktivierungen:</p>
-                          <p className="font-bold">
-                            {license.current_activations} / {license.max_activations}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => copyLicenseKey(license.license_key)}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-bold flex items-center gap-2 transition"
-                      >
-                        <FaCopy />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedLicense(license);
-                          setEditStatus(license.status);
-                          setShowEditModal(true);
-                        }}
-                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm font-bold flex items-center gap-2 transition"
-                      >
-                        <FaEdit /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLicense(license.id)}
-                        className="px-3 py-2 bg-red-600 hover:bg-red-700 rounded text-sm font-bold flex items-center gap-2 transition"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* PAGINATION */}
-            {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <button
-                  onClick={pagination.prevPage}
-                  disabled={!pagination.hasPrevPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-[#3C3C44] transition"
-                >
-                  <FaChevronLeft /> Previous
-                </button>
-
-                <div className="flex gap-1">
-                  {Array.from(
-                    { length: pagination.totalPages },
-                    (_, i) => i + 1
-                  ).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => pagination.goToPage(page)}
-                      className={`
-                        w-10 h-10 rounded font-bold transition
-                        ${
-                          page === pagination.currentPage
-                            ? "bg-[#00FF9C] text-black"
-                            : "bg-[#2C2C34] hover:bg-[#3C3C44]"
-                        }
-                      `}
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">🔑 Key</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">📦 Produkt</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">👤 Kunde</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">📊 Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">🎯 Typ</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">⚙️ Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  // Finde die richtige Pagination Property
+                  const items = (pagination as any).currentPage || 
+                               (pagination as any).items || 
+                               (pagination as any).paginatedItems ||
+                               [];
+                  
+                  if (!Array.isArray(items) || items.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                          <FaLightbulb className="text-4xl mx-auto mb-3 opacity-50" />
+                          <p>Keine Lizenzen gefunden. Erstelle jetzt eine neue!</p>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  
+                  return items.map((license) => (
+                    <tr
+                      key={license.id}
+                      className="border-b border-[#2C2C34] hover:bg-[#2C2C34]/50 transition"
                     >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={pagination.nextPage}
-                  disabled={!pagination.hasNextPage}
-                  className="px-4 py-2 bg-[#2C2C34] rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-[#3C3C44] transition"
-                >
-                  Next <FaChevronRight />
-                </button>
-              </div>
-            )}
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedLicenses.has(license.id)}
+                          onChange={() => toggleLicenseSelection(license.id)}
+                          className="cursor-pointer"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <code className="bg-[#2C2C34] px-3 py-1 rounded text-[#00FF9C] font-mono text-sm">
+                          {license.license_key.substring(0, 10)}...
+                        </code>
+                      </td>
+                      <td className="px-6 py-4 text-sm">{license.product_name}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <div>{license.customer_name}</div>
+                        <div className="text-xs text-gray-500">{license.customer_email}</div>
+                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(license.status)}</td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className="text-[#00FF9C] font-semibold">
+                          {license.type === "single" && "👤 Single"}
+                          {license.type === "floating" && "🔄 Floating"}
+                          {license.type === "concurrent" && "⚡ Concurrent"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedLicense(license);
+                              setEditStatus(license.status);
+                              setShowEditModal(true);
+                            }}
+                            className="p-2 text-blue-400 hover:bg-blue-600/20 rounded transition"
+                            title="Bearbeiten"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => copyLicenseKey(license.license_key)}
+                            className="p-2 text-[#00FF9C] hover:bg-[#00FF9C]/20 rounded transition"
+                            title="Kopieren"
+                          >
+                            <FaCopy />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLicense(license.id)}
+                            className="p-2 text-red-400 hover:bg-red-600/20 rounded transition"
+                            title="Löschen"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
           </div>
-        </main>
+
+          {/* PAGINATION */}
+          {((pagination as any).totalPages || 1) > 1 && (
+            <div className="flex items-center justify-center gap-4 p-6 border-t border-[#2C2C34]">
+              <button
+                onClick={() => pagination.goToPage((pagination as any).currentPageNumber - 1)}
+                disabled={(pagination as any).currentPageNumber === 1}
+                className="p-2 disabled:opacity-50"
+              >
+                <FaChevronLeft />
+              </button>
+              <span className="text-sm text-gray-400">
+                Seite {(pagination as any).currentPageNumber || 1} von {(pagination as any).totalPages || 1}
+              </span>
+              <button
+                onClick={() => pagination.goToPage((pagination as any).currentPageNumber + 1)}
+                disabled={(pagination as any).currentPageNumber === (pagination as any).totalPages}
+                className="p-2 disabled:opacity-50"
+              >
+                <FaChevronRight />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* BULK ACTIONS BAR */}
+        {showBulkActionsBar && (
+          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-6 z-40">
+            <span className="font-bold">
+              {selectedLicenses.size} ausgewählt
+            </span>
+            <button
+              onClick={handleBulkDelete}
+              className="px-4 py-2 bg-red-600 rounded hover:bg-red-700 transition font-bold"
+            >
+              🗑️ Löschen
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ✅ CREATE LICENSE MODAL */}
+      {/* CREATE LICENSE MODAL */}
       {showCreateLicenseModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-6 w-full max-w-md max-h-96 overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6">🔑 Neue Lizenz erstellen</h2>
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-xl p-8 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <FaRocket className="text-[#00FF9C]" /> Neue Lizenz erstellen
+            </h2>
 
             <div className="space-y-4 mb-6">
               <div>
@@ -889,9 +899,9 @@ export default function Dashboard() {
                   }
                   className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
                 >
-                  <option value="single">👤 Single User (1 Aktivierung)</option>
-                  <option value="floating">🔄 Floating (Team)</option>
-                  <option value="concurrent">⚡ Concurrent (Mehrere)</option>
+                  <option value="single">👤 Single User</option>
+                  <option value="floating">🔄 Floating</option>
+                  <option value="concurrent">⚡ Concurrent</option>
                 </select>
               </div>
 
@@ -913,7 +923,7 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">📅 Ablaufdatum (optional)</label>
+                <label className="block text-sm text-gray-400 mb-2">📅 Ablaufdatum</label>
                 <input
                   type="date"
                   value={createForm.expires_at}
@@ -929,7 +939,7 @@ export default function Dashboard() {
               <button
                 onClick={handleCreateLicense}
                 disabled={creatingLicense}
-                className="flex-1 px-4 py-3 bg-green-600 text-white font-bold rounded hover:bg-green-700 transition disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded hover:shadow-lg hover:shadow-green-500/50 transition disabled:opacity-50"
               >
                 {creatingLicense ? "⏳ Wird erstellt..." : "✅ Erstellen"}
               </button>
@@ -945,12 +955,13 @@ export default function Dashboard() {
         </div>
       )}
 
-
       {/* EDIT MODAL */}
       {showEditModal && selectedLicense && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-6">✏️ License bearbeiten</h2>
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-xl p-8 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <FaEdit className="text-blue-400" /> Lizenz bearbeiten
+            </h2>
 
             <div className="space-y-4 mb-6">
               <div>
@@ -979,8 +990,7 @@ export default function Dashboard() {
 
               <div className="bg-blue-600/20 border border-blue-600 rounded p-3">
                 <p className="text-xs text-blue-300">
-                  <strong>Info:</strong> Produkt, Kunde und andere Felder können nicht
-                  hier bearbeitet werden
+                  <strong>Info:</strong> Andere Felder können hier nicht bearbeitet werden
                 </p>
               </div>
             </div>
@@ -988,7 +998,7 @@ export default function Dashboard() {
             <div className="flex gap-4">
               <button
                 onClick={handleEditLicense}
-                className="flex-1 px-4 py-3 bg-[#00FF9C] text-[#0E0E12] font-bold rounded hover:bg-[#00cc80] transition"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#00FF9C] to-green-500 text-[#0E0E12] font-bold rounded hover:shadow-lg hover:shadow-green-500/50 transition"
               >
                 ✅ Speichern
               </button>
@@ -1006,8 +1016,10 @@ export default function Dashboard() {
       {/* BULK GENERATE MODAL */}
       {showBulkGenerateModal && (
         <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50 p-4">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-xl p-6 w-full max-w-md max-h-96 overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6">⚡ Bulk Key Generator</h2>
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#3C3C44] rounded-xl p-8 w-full max-w-md max-h-96 overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <FaRocket className="text-purple-400" /> Bulk Key Generator
+            </h2>
 
             <div className="space-y-4 mb-6">
               <div>
@@ -1074,16 +1086,16 @@ export default function Dashboard() {
                   onChange={(e) => setBulkType(e.target.value)}
                   className="w-full p-3 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none transition"
                 >
-                  <option value="single">👤 Single User - 1 Aktivierung</option>
-                  <option value="floating">🔄 Floating - Für Team</option>
-                  <option value="concurrent">⚡ Concurrent - Mehrere gleichzeitig</option>
+                  <option value="single">👤 Single User</option>
+                  <option value="floating">🔄 Floating</option>
+                  <option value="concurrent">⚡ Concurrent</option>
                 </select>
               </div>
             </div>
 
-            <div className="bg-green-600/20 border border-green-600 rounded p-3 mb-6">
-              <p className="text-xs text-green-300">
-                <strong>✨ Preview:</strong> {bulkCount} Keys für {bulkType}
+            <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-600 rounded p-4 mb-6">
+              <p className="text-sm text-purple-300 font-bold">
+                ✨ Preview: {bulkCount} Keys werden als {bulkType} erstellt
               </p>
             </div>
 
@@ -1091,7 +1103,7 @@ export default function Dashboard() {
               <button
                 onClick={handleBulkGenerate}
                 disabled={bulkGenerating || !bulkProduct || !bulkCustomer}
-                className="flex-1 px-4 py-3 bg-purple-600 text-white font-bold rounded hover:bg-purple-700 transition disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold rounded hover:shadow-lg hover:shadow-purple-600/50 transition disabled:opacity-50"
               >
                 {bulkGenerating ? "⏳ Generiere..." : "🔑 Generieren"}
               </button>
@@ -1106,6 +1118,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
     </>
   );
 }

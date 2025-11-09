@@ -1,4 +1,3 @@
-// src/pages/ResellerDashboard.tsx - UPDATED WITH DEVELOPERS LINK
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -11,7 +10,6 @@ import {
   FaChartBar,
   FaCreditCard,
   FaShoppingCart,
-  FaPlus,
   FaUsers,
 } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
@@ -50,38 +48,73 @@ export default function ResellerDashboard() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser();
-      const orgId = (data.user?.user_metadata as any)?.organization_id;
-      let reId = (data.user?.user_metadata as any)?.reseller_id;
-
-      if (!orgId) {
-        navigate("/reseller-login", { replace: true });
-        return;
-      }
-
-      // Auto-lookup reseller_id
-      if (!reId) {
-        const { data: resellerData } = await supabase
-          .from("resellers")
-          .select("id")
-          .eq("organization_id", orgId)
-          .single();
-
-        if (resellerData) {
-          reId = resellerData.id;
-          await supabase.auth.updateUser({
-            data: {
-              is_reseller: true,
-              organization_id: orgId,
-              reseller_id: reId,
-            },
-          });
+      try {
+        console.log("🚀 ResellerDashboard Init...");
+        
+        const { data, error } = await supabase.auth.getUser();
+        
+        if (error || !data.user) {
+          console.error("❌ Auth Error:", error);
+          navigate("/reseller-login", { replace: true });
+          return;
         }
-      }
 
-      setOrganizationId(orgId);
-      setResellerId(reId);
-      await loadData(orgId, reId);
+        const orgId = (data.user?.user_metadata as any)?.organization_id;
+        let reId = (data.user?.user_metadata as any)?.reseller_id;
+
+        if (!orgId) {
+          console.error("❌ No organization_id!");
+          navigate("/reseller-login", { replace: true });
+          return;
+        }
+
+        if (!reId) {
+          console.log("🔍 Looking up reseller_id...");
+          const { data: resellerData, error: resellerError } = await supabase
+            .from("resellers")
+            .select("id")
+            .eq("organization_id", orgId)
+            .maybeSingle();
+
+          if (resellerError) {
+            console.error("❌ Lookup Error:", resellerError);
+          }
+
+          if (resellerData) {
+            reId = resellerData.id;
+            console.log("✅ Found reseller_id:", reId);
+            
+            await supabase.auth.updateUser({
+              data: {
+                is_reseller: true,
+                organization_id: orgId,
+                reseller_id: reId,
+              },
+            });
+          } else {
+            console.error("❌ No reseller found for org:", orgId);
+            openDialog({
+              type: "error",
+              title: "❌ Reseller nicht gefunden",
+              message: "Dein Reseller-Profil konnte nicht gefunden werden.",
+              closeButton: "OK",
+            });
+            return;
+          }
+        }
+
+        setOrganizationId(orgId);
+        setResellerId(reId);
+        await loadData(orgId, reId);
+      } catch (err) {
+        console.error("❌ Init Error:", err);
+        openDialog({
+          type: "error",
+          title: "❌ Fehler",
+          message: `${err}`,
+          closeButton: "OK",
+        });
+      }
     }
     init();
   }, []);
@@ -89,29 +122,39 @@ export default function ResellerDashboard() {
   async function loadData(orgId: string, reId: string) {
     setLoading(true);
     try {
-      // Lade Reseller Info
-      const { data: resellerData } = await supabase
+      const { data: resellerData, error: resellerError } = await supabase
         .from("resellers")
         .select("*")
         .eq("organization_id", orgId)
-        .single();
+        .maybeSingle();
+
+      if (resellerError) {
+        console.error("❌ Reseller Load Error:", resellerError);
+      }
 
       if (resellerData) {
+        console.log("✅ Reseller loaded:", resellerData.shop_name);
         setReseller(resellerData);
       }
 
-      // Lade Reseller Products (gekaufte Keys)
-      const { data: productsData } = await supabase
+      const { data: productsData, error: productsError } = await supabase
         .from("reseller_products")
         .select("quantity_available, quantity_sold")
         .eq("reseller_id", reId);
 
-      // Lade Accepted Developers
-      const { data: devData } = await supabase
+      if (productsError) {
+        console.error("❌ Products Error:", productsError);
+      }
+
+      const { data: devData, error: devError } = await supabase
         .from("developer_resellers")
         .select("id")
         .eq("reseller_id", reId)
         .eq("status", "active");
+
+      if (devError) {
+        console.error("❌ Developers Error:", devError);
+      }
 
       if (productsData) {
         const totalKeys = productsData.reduce((sum, p) => sum + (p.quantity_available || 0), 0);
@@ -121,12 +164,18 @@ export default function ResellerDashboard() {
           totalKeys: totalKeys + sold,
           keysInStock: totalKeys,
           keysSold: sold,
-          totalRevenue: 0, // TODO: Calculate from transactions
+          totalRevenue: 0,
           acceptedDevelopers: devData?.length || 0,
         });
       }
     } catch (err) {
-      console.error("Error loading data:", err);
+      console.error("❌ Error loading data:", err);
+      openDialog({
+        type: "error",
+        title: "❌ Fehler beim Laden",
+        message: "Dashboard-Daten konnten nicht geladen werden",
+        closeButton: "OK",
+      });
     }
     setLoading(false);
   }
@@ -140,8 +189,8 @@ export default function ResellerDashboard() {
     return (
       <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0] flex items-center justify-center">
         <div className="text-center">
-          <div className="mb-4 text-2xl">⏳</div>
-          <p>Lädt Dashboard...</p>
+          <div className="mb-4 text-3xl animate-spin">⏳</div>
+          <p className="text-lg">Lädt Dashboard...</p>
         </div>
       </div>
     );
@@ -152,11 +201,9 @@ export default function ResellerDashboard() {
       {DialogComponent}
 
       <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0]">
-        {/* HEADER */}
         <div className="bg-[#1A1A1F] border-b border-[#2C2C34] p-6 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
             
-            {/* LEFT: BACK BUTTON + TITLE */}
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate("/")}
@@ -172,12 +219,11 @@ export default function ResellerDashboard() {
                   Reseller Dashboard
                 </h1>
                 <p className="text-gray-400 mt-1">
-                  Shop: <strong>{reseller?.shop_name}</strong>
+                  Shop: <strong>{reseller?.shop_name || "Loading..."}</strong>
                 </p>
               </div>
             </div>
 
-            {/* RIGHT: ACTION BUTTONS */}
             <div className="flex gap-3 flex-wrap justify-end">
               <button
                 onClick={() => navigate("/reseller-developers")}
@@ -208,7 +254,6 @@ export default function ResellerDashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto p-8">
-          {/* STATS */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
             <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-purple-600 transition">
               <div className="flex items-center justify-between mb-2">
@@ -266,7 +311,6 @@ export default function ResellerDashboard() {
             </div>
           </div>
 
-          {/* QUICK ACTIONS */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div
               onClick={() => navigate("/reseller-developers")}
@@ -317,21 +361,14 @@ export default function ResellerDashboard() {
             </div>
           </div>
 
-          {/* INFO BOX */}
           <div className="bg-blue-600/20 border border-blue-600 rounded-lg p-6">
             <h3 className="font-bold text-blue-400 mb-3">📋 Workflow</h3>
             <ol className="text-sm text-blue-300 space-y-2">
-              <li>
-                1. 👥 Gehe zu <strong>Marketplace</strong> und finde Developer
-              </li>
+              <li>1. 👥 Gehe zu <strong>Marketplace</strong> und finde Developer</li>
               <li>2. 🤝 Klick "Reseller werden"</li>
               <li>3. ⏳ Warte auf Developer Bestätigung</li>
-              <li>
-                4. 🛒 Gehe zu <strong>Meine Developer</strong> und kaufe Keys
-              </li>
-              <li>
-                5. 💰 Gehe zu <strong>Lagerverwaltung</strong> und stelle Preise ein
-              </li>
+              <li>4. 🛍 Gehe zu <strong>Meine Developer</strong> und kaufe Keys</li>
+              <li>5. 💰 Gehe zu <strong>Lagerverwaltung</strong> und stelle Preise ein</li>
               <li>6. 📦 Verkaufe Keys an End-Kunden</li>
             </ol>
           </div>
