@@ -1,7 +1,11 @@
-// src/App.tsx - COMPLETE WITH ALL ROUTES (Admin + Bonus Features)
+// src/App.tsx - COMPLETE WITH LICENSE VALIDATION + ALL ROUTES
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Toaster from "./components/Toaster";
+
+// ===== LICENSE VALIDATION =====
+import { validateLicense } from "./lib/licenseValidator";
 
 // ===== CENTRAL ENTRY =====
 import Home from "./pages/Home";
@@ -17,6 +21,9 @@ import ResellerLogin from "./pages/ResellerLogin";
 // ===== PUBLIC PAGES =====
 import CustomerShop from "./pages/CustomerShop";
 import KeyValidator from "./pages/KeyValidator";
+
+// ===== LICENSE LOGIN =====
+import LicenseLogin from "./pages/LicenseLogin";
 
 // ===== DEVELOPER PAGES =====
 import DeveloperDashboard from "./pages/DeveloperDashboard";
@@ -54,7 +61,137 @@ import Activations from "./pages/Activations";
 import CustomerPortal from "./pages/CustomerPortal";
 import CreateLicense from "./pages/CreateLicense";
 
+// ===== LICENSE AUTH STATE =====
+interface LicenseAuthState {
+  licensed: boolean;
+  licenseKey?: string;
+  productName?: string;
+  customerEmail?: string;
+  loading: boolean;
+}
+
 export default function App() {
+  const [licenseAuth, setLicenseAuth] = useState<LicenseAuthState>({
+    licensed: false,
+    loading: true,
+  });
+
+  // ===== CHECK LICENSE AT APP START =====
+  useEffect(() => {
+    async function checkLicense() {
+      console.log("🔐 Checking for existing license...");
+
+      // Try to get license key from 3 sources:
+      // 1. localStorage
+      let licenseKey = localStorage.getItem("license_key");
+
+      // 2. URL parameters (?key=LIC-... or ?license_key=LIC-...)
+      if (!licenseKey) {
+        const params = new URLSearchParams(window.location.search);
+        licenseKey = params.get("key") || params.get("license_key");
+
+        if (licenseKey) {
+          localStorage.setItem("license_key", licenseKey);
+        }
+      }
+
+      // 3. sessionStorage (current session only)
+      if (!licenseKey) {
+        licenseKey = sessionStorage.getItem("license_key") || undefined;
+      }
+
+      if (licenseKey) {
+        console.log("🔍 License key found, validating...");
+
+        try {
+          const result = await validateLicense(licenseKey);
+
+          if (result.valid) {
+            console.log("✅ License is valid!");
+            setLicenseAuth({
+              licensed: true,
+              licenseKey,
+              productName: result.product_name,
+              customerEmail: result.customer_email,
+              loading: false,
+            });
+          } else {
+            console.log("❌ License is invalid:", result.message);
+            localStorage.removeItem("license_key");
+            sessionStorage.removeItem("license_key");
+            setLicenseAuth({
+              licensed: false,
+              loading: false,
+            });
+          }
+        } catch (err) {
+          console.error("❌ Error validating:", err);
+          setLicenseAuth({
+            licensed: false,
+            loading: false,
+          });
+        }
+      } else {
+        console.log("ℹ️ No license key found");
+        setLicenseAuth({
+          licensed: false,
+          loading: false,
+        });
+      }
+    }
+
+    checkLicense();
+
+    // Revalidate every 5 minutes
+    const interval = setInterval(() => {
+      console.log("🔄 Revalidating license...");
+      checkLicense();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // ===== HANDLE LICENSE LOGIN =====
+  function handleLicenseLogin(
+    key: string,
+    product: string,
+    customer: string
+  ) {
+    console.log("✅ License login successful");
+    localStorage.setItem("license_key", key);
+    setLicenseAuth({
+      licensed: true,
+      licenseKey: key,
+      productName: product,
+      customerEmail: customer,
+      loading: false,
+    });
+  }
+
+  // ===== HANDLE LICENSE LOGOUT =====
+  function handleLicenseLogout() {
+    console.log("👋 License logout");
+    localStorage.removeItem("license_key");
+    sessionStorage.removeItem("license_key");
+    setLicenseAuth({
+      licensed: false,
+      loading: false,
+    });
+  }
+
+  if (licenseAuth.loading) {
+    return (
+      <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0] flex items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4">
+            <div className="inline-block animate-spin">⏳</div>
+          </div>
+          <p className="text-lg">🔄 Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter
       future={{
@@ -72,6 +209,17 @@ export default function App() {
         <Route path="/bundles" element={<KeyBundles />} />
         <Route path="/reviews" element={<CustomerReviews />} />
         <Route path="/portal" element={<CustomerPortal />} />
+
+        {/* ===== LICENSE LOGIN ROUTE ===== */}
+        <Route
+          path="/license-login"
+          element={
+            <LicenseLogin
+              onSuccess={handleLicenseLogin}
+              licenseAuth={licenseAuth}
+            />
+          }
+        />
 
         {/* ===== NORMAL USER AUTH ROUTES ===== */}
         <Route path="/login" element={<Login />} />
