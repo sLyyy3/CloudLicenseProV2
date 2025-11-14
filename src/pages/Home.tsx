@@ -80,7 +80,8 @@ export default function Home() {
           style={{
             top: '10%',
             left: '5%',
-            transform: `translate(${mousePosition.x * 0.002}px, ${mousePosition.y * 0.002}px)`
+            transform: `translate(${mousePosition.x * 0.0001}px, ${mousePosition.y * 0.0001}px)`,
+            transition: 'transform 0.5s ease-out'
           }}
         ></div>
         <div
@@ -89,7 +90,8 @@ export default function Home() {
             bottom: '20%',
             right: '10%',
             clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-            transform: `translate(${mousePosition.x * -0.003}px, ${mousePosition.y * -0.003}px)`
+            transform: `translate(${mousePosition.x * -0.00015}px, ${mousePosition.y * -0.00015}px)`,
+            transition: 'transform 0.5s ease-out'
           }}
         ></div>
         <div
@@ -98,7 +100,8 @@ export default function Home() {
             top: '50%',
             left: '50%',
             clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-            transform: `translate(${mousePosition.x * 0.0015}px, ${mousePosition.y * 0.0015}px)`
+            transform: `translate(${mousePosition.x * 0.00008}px, ${mousePosition.y * 0.00008}px)`,
+            transition: 'transform 0.5s ease-out'
           }}
         ></div>
 

@@ -11,6 +11,7 @@ import {
   FaUsers,
   FaRocket,
   FaFire,
+  FaArrowLeft,
 } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
 import Sidebar from "../components/Sidebar";
@@ -168,23 +169,33 @@ export default function ResellerDashboard() {
 
         {/* HEADER */}
         <div className="ml-0 md:ml-64 bg-gradient-to-r from-[#1A1A1F] via-[#2C2C34] to-[#1A1A1F] border-b border-[#00FF9C]/20 p-6 sticky top-0 z-40 shadow-lg shadow-[#00FF9C]/10">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#00FF9C]/20 rounded-lg">
-                <FaStore className="text-[#00FF9C] text-3xl" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">{reseller?.shop_name || "Mein Shop"}</h1>
-                <p className="text-gray-400 text-sm">Reseller Dashboard</p>
-              </div>
-            </div>
-
+          <div className="max-w-7xl mx-auto">
+            {/* BACK BUTTON */}
             <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold flex items-center gap-2 transition"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 text-gray-400 hover:text-[#00FF9C] transition mb-4 text-sm font-semibold"
             >
-              <FaSignOutAlt /> Logout
+              <FaArrowLeft /> Zurück zur Startseite
             </button>
+
+            <div className="flex items-center justify-between gap-6 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-[#00FF9C]/20 rounded-lg">
+                  <FaStore className="text-[#00FF9C] text-3xl" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">{reseller?.shop_name || "Mein Shop"}</h1>
+                  <p className="text-gray-400 text-sm">Reseller Dashboard</p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold flex items-center gap-2 transition"
+              >
+                <FaSignOutAlt /> Logout
+              </button>
+            </div>
           </div>
         </div>
 

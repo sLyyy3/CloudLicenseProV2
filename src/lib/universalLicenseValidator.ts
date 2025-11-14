@@ -135,13 +135,12 @@ export async function validateLicenseUniversal(
 
     // ===== STRATEGIE 2: Suche in "customer_keys" Tabelle =====
     if (!licenseData) {
-      // Simplified select query - just basic fields
+      // Simplified select query - basic fields only (expires_at may not exist yet)
       const selectQuery = `
         id,
         key_code,
         status,
         created_at,
-        expires_at,
         customer_email
       `;
 
@@ -183,7 +182,7 @@ export async function validateLicenseUniversal(
           license_key: data.key_code,
           status: data.status,
           type: 'single',
-          expires_at: data.expires_at,
+          expires_at: (data as any).expires_at || null, // Optional field, may not exist yet
           max_activations: 1,
           current_activations: 0,
           product_name: 'Reseller Product',

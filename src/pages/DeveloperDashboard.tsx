@@ -18,6 +18,7 @@ import {
   FaTrophy,
   FaArrowUp,
   FaArrowDown,
+  FaArrowLeft,
 } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
 import Sidebar from "../components/Sidebar";
@@ -301,6 +302,14 @@ export default function DeveloperDashboard() {
         <Sidebar />
 
         <main className="ml-64 flex-1 p-8 text-[#E0E0E0]">
+          {/* BACK BUTTON */}
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-gray-400 hover:text-[#00FF9C] transition mb-6 text-sm font-semibold"
+          >
+            <FaArrowLeft /> Zurück zur Startseite
+          </button>
+
           {/* ANIMATED HEADER */}
           <div className="relative mb-8 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 border-2 border-blue-500/50 rounded-3xl p-8 overflow-hidden shadow-2xl shadow-blue-500/20">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 animate-pulse"></div>

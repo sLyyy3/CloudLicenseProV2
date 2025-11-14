@@ -15,6 +15,7 @@ import {
   FaStar,
   FaGift,
   FaBox,
+  FaArrowLeft,
 } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
 import Sidebar from "../components/Sidebar";
@@ -258,6 +259,14 @@ export default function CustomerDashboard() {
         <Sidebar />
 
         <main className="ml-64 flex-1 p-8 text-[#E0E0E0]">
+          {/* BACK BUTTON */}
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-gray-400 hover:text-[#00FF9C] transition mb-6 text-sm font-semibold"
+          >
+            <FaArrowLeft /> Zurück zur Startseite
+          </button>
+
           {/* EPIC HEADER */}
           <div className="mb-8 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 blur-3xl"></div>
