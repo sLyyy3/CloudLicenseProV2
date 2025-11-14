@@ -27,7 +27,6 @@ export default function Home() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     async function checkAuth() {
@@ -41,12 +40,14 @@ export default function Home() {
     }
     checkAuth();
 
-    // Track mouse for artistic effects
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    // Capture referral code from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    if (refCode) {
+      console.log('🎯 Referral Code detected:', refCode);
+      localStorage.setItem('referral_code', refCode);
+      console.log('✅ Referral Code saved! Sign up to earn rewards for the referrer!');
+    }
   }, []);
 
   const quickLinks = [
@@ -72,36 +73,35 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#1A1A2E] to-[#16213E] text-white overflow-hidden relative">
-      {/* ARTISTIC BACKGROUND - Picasso Inspired */}
+      {/* MODERN ANIMATED BACKGROUND - Sellix/Shoppy Style */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* Floating geometric shapes */}
+        {/* Floating orbs with automatic smooth animations */}
         <div
           className="absolute w-96 h-96 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full blur-3xl animate-float"
+          style={{ top: '10%', left: '5%' }}
+        ></div>
+        <div
+          className="absolute w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-3xl animate-float-delay-1"
+          style={{ bottom: '20%', right: '10%' }}
+        ></div>
+        <div
+          className="absolute w-80 h-80 bg-gradient-to-br from-yellow-500/15 to-orange-500/15 rounded-full blur-3xl animate-float-delay-2"
+          style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+        ></div>
+        <div
+          className="absolute w-72 h-72 bg-gradient-to-br from-green-500/15 to-emerald-500/15 rounded-full blur-3xl"
           style={{
-            top: '10%',
-            left: '5%',
-            transform: `translate(${mousePosition.x * 0.0001}px, ${mousePosition.y * 0.0001}px)`,
-            transition: 'transform 0.5s ease-out'
+            top: '30%',
+            right: '20%',
+            animation: 'float 25s ease-in-out infinite'
           }}
         ></div>
         <div
-          className="absolute w-64 h-64 bg-gradient-to-br from-purple-500/20 to-pink-500/20 blur-3xl animate-float-delay-1"
+          className="absolute w-56 h-56 bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-full blur-3xl"
           style={{
-            bottom: '20%',
-            right: '10%',
-            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-            transform: `translate(${mousePosition.x * -0.00015}px, ${mousePosition.y * -0.00015}px)`,
-            transition: 'transform 0.5s ease-out'
-          }}
-        ></div>
-        <div
-          className="absolute w-80 h-80 bg-gradient-to-br from-yellow-500/15 to-orange-500/15 blur-3xl animate-float-delay-2"
-          style={{
-            top: '50%',
-            left: '50%',
-            clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-            transform: `translate(${mousePosition.x * 0.00008}px, ${mousePosition.y * 0.00008}px)`,
-            transition: 'transform 0.5s ease-out'
+            bottom: '10%',
+            left: '30%',
+            animation: 'float 30s ease-in-out infinite reverse'
           }}
         ></div>
 

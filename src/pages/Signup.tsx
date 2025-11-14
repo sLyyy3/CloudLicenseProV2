@@ -155,6 +155,56 @@ export default function Signup() {
         console.log("✅ User Metadata updated");
       }
 
+      // SCHRITT 4: Process Referral Code (if exists)
+      const refCode = localStorage.getItem('referral_code');
+      if (refCode) {
+        console.log("🎯 Processing Referral Code:", refCode);
+
+        try {
+          // Find the referrer by code
+          const { data: referrer, error: referrerError } = await supabase
+            .from("referral_users")
+            .select("*")
+            .eq("referral_code", refCode)
+            .single();
+
+          if (!referrerError && referrer) {
+            console.log("✅ Referrer found:", referrer.email);
+
+            // Create referral entry
+            const { error: refInsertError } = await supabase
+              .from("referrals")
+              .insert({
+                referrer_email: referrer.email,
+                referred_email: email,
+                status: "pending", // Will be "active" after first purchase
+                commission: 0,
+              });
+
+            if (!refInsertError) {
+              // Increment referral count
+              await supabase
+                .from("referral_users")
+                .update({
+                  referral_count: (referrer.referral_count || 0) + 1
+                })
+                .eq("email", referrer.email);
+
+              console.log("🎉 Referral created successfully!");
+
+              // Clear the referral code
+              localStorage.removeItem('referral_code');
+            } else {
+              console.error("❌ Error creating referral:", refInsertError);
+            }
+          } else {
+            console.log("⚠️ Referrer not found for code:", refCode);
+          }
+        } catch (refError) {
+          console.error("❌ Referral processing error:", refError);
+        }
+      }
+
       // SUCCESS!
       console.log("🎉 SIGNUP ERFOLGREICH!");
       
