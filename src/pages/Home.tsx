@@ -51,7 +51,7 @@ export default function Home() {
 
   const quickLinks = [
     { icon: FaStore, label: "Reseller Shops", path: "/reseller-shops", color: "from-cyan-500 to-blue-500", emoji: "🛍️" },
-    { icon: FaKey, label: "Meine Keys", path: "/customer-dashboard", color: "from-green-500 to-emerald-500", emoji: "🔑" },
+    { icon: FaKey, label: "Lizenz-Bibliothek", path: "/customer-dashboard", color: "from-green-500 to-emerald-500", emoji: "📚" },
     { icon: FaShieldAlt, label: "Key Validator", path: "/key-validator", color: "from-purple-500 to-pink-500", emoji: "✅" },
     { icon: FaGift, label: "Key Bundles", path: "/bundles", color: "from-yellow-500 to-orange-500", emoji: "🎁" },
     { icon: FaStar, label: "Reviews", path: "/reviews", color: "from-red-500 to-pink-500", emoji: "⭐" },

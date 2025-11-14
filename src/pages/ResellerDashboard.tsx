@@ -86,42 +86,56 @@ export default function ResellerDashboard() {
   async function loadStats(reId: string) {
     setLoading(true);
     try {
+      // Get products with sales and price info
       const { data: productsData } = await supabase
         .from("reseller_products")
-        .select("quantity_available, quantity_sold")
+        .select("quantity_available, quantity_sold, reseller_price, product_name")
         .eq("reseller_id", reId);
 
       let totalKeysAvailable = 0;
       let totalSales = 0;
+      let totalRevenue = 0;
 
       if (productsData) {
-        totalKeysAvailable = productsData.reduce((sum, p) => sum + p.quantity_available, 0);
-        totalSales = productsData.reduce((sum, p) => sum + p.quantity_sold, 0);
+        totalKeysAvailable = productsData.reduce((sum, p) => sum + (p.quantity_available || 0), 0);
+        totalSales = productsData.reduce((sum, p) => sum + (p.quantity_sold || 0), 0);
+        // Calculate revenue from products: quantity_sold * price
+        totalRevenue = productsData.reduce((sum, p) => sum + ((p.quantity_sold || 0) * (p.reseller_price || 0)), 0);
       }
 
-      const { data: salesData } = await supabase
-        .from("reseller_sales")
-        .select("total_price")
-        .eq("reseller_id", reId);
-
-      let totalRevenue = 0;
-      if (salesData) {
-        totalRevenue = salesData.reduce((sum, s) => sum + s.total_price, 0);
-      }
-
+      // Get recent sales from customer_orders
       const { data: recentSalesData } = await supabase
-        .from("reseller_sales")
-        .select("*")
-        .eq("reseller_id", reId)
+        .from("customer_keys")
+        .select(`
+          id,
+          key_code,
+          created_at,
+          customer_email,
+          reseller_product_id
+        `)
+        .eq("reseller_product_id", reId ? reId : "null")
         .order("created_at", { ascending: false })
         .limit(5);
+
+      // Enrich sales data with product info
+      const enrichedSales = (recentSalesData || []).map((sale: any) => {
+        const product = productsData?.find(p => p.product_name);
+        return {
+          product_name: product?.product_name || "Unbekannt",
+          customer_name: sale.customer_email?.split('@')[0] || "Kunde",
+          customer_email: sale.customer_email,
+          quantity: 1,
+          total_price: product?.reseller_price || 0,
+          created_at: sale.created_at,
+        };
+      });
 
       setStats({
         totalProducts: productsData?.length || 0,
         totalKeysAvailable,
         totalSales,
         totalRevenue,
-        recentSales: recentSalesData || [],
+        recentSales: enrichedSales,
       });
     } catch (err) {
       console.error("Error loading stats:", err);

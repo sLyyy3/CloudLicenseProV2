@@ -214,7 +214,7 @@ export default function CustomerDashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h1 className="text-5xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2 flex items-center gap-3">
-                      <FaKey className="text-[#00FF9C]" /> Meine License Keys
+                      <FaKey className="text-[#00FF9C]" /> 📚 Lizenz-Bibliothek
                     </h1>
                     <p className="text-gray-300 text-lg flex items-center gap-2">
                       <FaCheckCircle className="text-green-400" />
@@ -325,7 +325,7 @@ export default function CustomerDashboard() {
                   : "text-gray-400 border-transparent hover:text-white"
               }`}
             >
-              🔑 Meine Keys ({keys.length})
+              📚 Lizenz-Bibliothek ({keys.length})
             </button>
             <button
               onClick={() => setTab("orders")}
