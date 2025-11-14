@@ -43,19 +43,15 @@ export default function ResellerShopsBrowse() {
               .eq("reseller_id", reseller.id)
               .gt("quantity_available", 0);
 
-            // Get total sales (optional - might not exist yet)
+            // Get total sales from reseller_products.quantity_sold instead of reseller_sales table
             let totalSales = 0;
-            try {
-              const { count, error } = await supabase
-                .from("reseller_sales")
-                .select("*", { count: "exact", head: true })
-                .eq("reseller_id", reseller.id);
+            const { data: productsData } = await supabase
+              .from("reseller_products")
+              .select("quantity_sold")
+              .eq("reseller_id", reseller.id);
 
-              if (!error) {
-                totalSales = count || 0;
-              }
-            } catch (err) {
-              console.log("reseller_sales table not available yet");
+            if (productsData) {
+              totalSales = productsData.reduce((sum, p) => sum + (p.quantity_sold || 0), 0);
             }
 
             return {
