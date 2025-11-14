@@ -34,6 +34,7 @@ type CustomerKey = {
   key_code: string;
   status: string;
   order_id: string | null;
+  reseller_product_id?: string | null;
   product_name?: string;
   created_at: string;
 };

@@ -72,12 +72,14 @@ CREATE TABLE IF NOT EXISTS customer_keys (
   key_code TEXT NOT NULL,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'expired')),
   order_id UUID REFERENCES customer_orders(id) ON DELETE SET NULL,
+  reseller_product_id UUID REFERENCES reseller_products(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_customer_keys_email ON customer_keys(customer_email);
 CREATE INDEX IF NOT EXISTS idx_customer_keys_order_id ON customer_keys(order_id);
+CREATE INDEX IF NOT EXISTS idx_customer_keys_reseller_product_id ON customer_keys(reseller_product_id);
 CREATE INDEX IF NOT EXISTS idx_customer_keys_status ON customer_keys(status);
 CREATE INDEX IF NOT EXISTS idx_customer_keys_key_code ON customer_keys(key_code);
 
@@ -216,13 +218,14 @@ updated_at      TIMESTAMPTZ
 
 ### customer_keys
 ```
-id              UUID PRIMARY KEY
-customer_email  TEXT (indexed)
-key_code        TEXT (indexed)
-status          TEXT (active/inactive/expired)
-order_id        UUID (FK → customer_orders.id)
-created_at      TIMESTAMPTZ
-updated_at      TIMESTAMPTZ
+id                   UUID PRIMARY KEY
+customer_email       TEXT (indexed)
+key_code             TEXT (indexed)
+status               TEXT (active/inactive/expired)
+order_id             UUID (FK → customer_orders.id)
+reseller_product_id  UUID (FK → reseller_products.id, nullable)
+created_at           TIMESTAMPTZ
+updated_at           TIMESTAMPTZ
 ```
 
 ### reseller_products

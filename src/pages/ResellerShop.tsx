@@ -205,6 +205,7 @@ export default function ResellerShop() {
         key_code: key,
         status: "active",
         order_id: orderData.id,
+        reseller_product_id: product.id,
       }));
 
       const { data: insertedKeys, error: keysError } = await supabase
