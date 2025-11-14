@@ -15,6 +15,7 @@ type ResellerProduct = {
   quantity_sold: number;
   status?: string;
   keys_pool?: string;
+  license_duration?: number; // License duration in days (0 = lifetime)
 };
 
 type Reseller = {
@@ -149,10 +150,10 @@ export default function ResellerShop() {
     try {
       console.log("🛒 Kauf starten:", product.product_name, "x", quantity);
 
-      // Get keys from inventory pool
+      // Get keys from inventory pool + license_duration
       const { data: productData } = await supabase
         .from("reseller_products")
-        .select("keys_pool")
+        .select("keys_pool, license_duration")
         .eq("id", product.id)
         .single();
 
@@ -198,14 +199,28 @@ export default function ResellerShop() {
 
       if (orderError) throw orderError;
 
+      // Calculate expires_at based on license_duration
+      let expiresAt: string | null = null;
+      const licenseDuration = productData.license_duration || 30; // Default 30 days
+
+      if (licenseDuration > 0) {
+        // Calculate expiry date
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + licenseDuration);
+        expiresAt = expiryDate.toISOString();
+      }
+      // If license_duration === 0, it's lifetime (expiresAt stays null)
+
       // Create customer keys
       console.log(`💾 Speichere ${keys.length} Keys für ${user.email}...`);
+      console.log(`⏱️ Lizenz-Laufzeit: ${licenseDuration === 0 ? 'Lifetime' : `${licenseDuration} Tage`}`);
       const keyInserts = keys.map((key) => ({
         customer_email: user.email,
         key_code: key,
         status: "active",
         order_id: orderData.id,
         reseller_product_id: product.id,
+        expires_at: expiresAt,
       }));
 
       const { data: insertedKeys, error: keysError } = await supabase
@@ -399,9 +414,15 @@ export default function ResellerShop() {
                           <span className="text-sm text-gray-400">Auf Lager:</span>
                           <span className="font-bold text-[#00FF9C]">{product.quantity_available} Keys</span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-gray-400">Verkauft:</span>
                           <span className="font-bold text-blue-400">{product.quantity_sold}x</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-400">Gültigkeitsdauer:</span>
+                          <span className={`font-bold ${product.license_duration === 0 ? 'text-green-400' : 'text-purple-400'}`}>
+                            {product.license_duration === 0 ? '♾️ Lifetime' : `⏰ ${product.license_duration || 30} Tage`}
+                          </span>
                         </div>
                       </div>
 

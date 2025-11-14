@@ -30,6 +30,7 @@ export default function ResellerKeyUpload() {
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number>(9.99);
+  const [licenseDuration, setLicenseDuration] = useState<number>(30); // Days: 0=lifetime, 1=1day, 30=30days, 365=1year
   const [keysText, setKeysText] = useState("");
   const [parsedKeys, setParsedKeys] = useState<ParsedKey[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -168,6 +169,7 @@ export default function ResellerKeyUpload() {
             product_name: productName,
             description: description || null, // Optional description
             reseller_price: price,
+            license_duration: licenseDuration, // License duration in days
             quantity_available: 0, // Will be calculated from keys
             quantity_sold: 0,
             status: "active",
@@ -203,12 +205,13 @@ export default function ResellerKeyUpload() {
       const newKeys = validKeys.map((k) => k.key);
       const allKeys = [...currentKeys, ...newKeys];
 
-      // Update product with new keys
+      // Update product with new keys and duration
       const { error: updateError } = await supabase
         .from("reseller_products")
         .update({
           keys_pool: JSON.stringify(allKeys),
           quantity_available: allKeys.length,
+          license_duration: licenseDuration, // Update duration too
         })
         .eq("id", resellerProductId);
 
@@ -331,6 +334,32 @@ export default function ResellerKeyUpload() {
                       />
                     </div>
                     <p className="text-xs text-gray-500 mt-1">Preis pro Key in Euro</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-gray-300">
+                      ⏱️ Lizenz-Laufzeit *
+                    </label>
+                    <select
+                      value={licenseDuration}
+                      onChange={(e) => setLicenseDuration(parseInt(e.target.value))}
+                      className="w-full p-3 rounded-lg bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none"
+                    >
+                      <option value={1}>1 Tag</option>
+                      <option value={7}>7 Tage</option>
+                      <option value={14}>14 Tage</option>
+                      <option value={30}>30 Tage (Empfohlen)</option>
+                      <option value={60}>60 Tage</option>
+                      <option value={90}>90 Tage</option>
+                      <option value={180}>180 Tage (6 Monate)</option>
+                      <option value={365}>1 Jahr (365 Tage)</option>
+                      <option value={0}>♾️ Lifetime (Keine Ablaufdatum)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {licenseDuration === 0
+                        ? "🔓 Lifetime - Keys laufen nie ab"
+                        : `⏰ Keys sind ${licenseDuration} Tage gültig nach Kauf`}
+                    </p>
                   </div>
                 </div>
               </div>

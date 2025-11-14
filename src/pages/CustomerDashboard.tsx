@@ -37,6 +37,7 @@ type CustomerKey = {
   reseller_product_id?: string | null;
   product_name?: string;
   created_at: string;
+  expires_at?: string; // License expiry date
 };
 
 export default function CustomerDashboard() {
@@ -167,6 +168,58 @@ export default function CustomerDashboard() {
     a.download = `my-keys-${new Date().toISOString().split("T")[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function getExpiryStatus(key: CustomerKey): { text: string; color: string; bgColor: string; icon: string } {
+    if (!key.expires_at) {
+      return {
+        text: "♾️ Lifetime",
+        color: "text-green-400",
+        bgColor: "bg-green-500/20 border-green-500/30",
+        icon: "🔓"
+      };
+    }
+
+    const expiryDate = new Date(key.expires_at);
+    const now = new Date();
+    const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysRemaining < 0) {
+      return {
+        text: "❌ Abgelaufen",
+        color: "text-red-400",
+        bgColor: "bg-red-500/20 border-red-500/30",
+        icon: "🚫"
+      };
+    } else if (daysRemaining === 0) {
+      return {
+        text: "⏰ Läuft heute ab",
+        color: "text-orange-400",
+        bgColor: "bg-orange-500/20 border-orange-500/30",
+        icon: "⚠️"
+      };
+    } else if (daysRemaining <= 7) {
+      return {
+        text: `⚠️ ${daysRemaining} Tage`,
+        color: "text-yellow-400",
+        bgColor: "bg-yellow-500/20 border-yellow-500/30",
+        icon: "⏳"
+      };
+    } else if (daysRemaining <= 30) {
+      return {
+        text: `⏰ ${daysRemaining} Tage`,
+        color: "text-blue-400",
+        bgColor: "bg-blue-500/20 border-blue-500/30",
+        icon: "📅"
+      };
+    } else {
+      return {
+        text: `✅ ${daysRemaining} Tage`,
+        color: "text-green-400",
+        bgColor: "bg-green-500/20 border-green-500/30",
+        icon: "⏰"
+      };
+    }
   }
 
   if (loading) {
@@ -387,37 +440,48 @@ export default function CustomerDashboard() {
                     </div>
 
                     <div className="space-y-3">
-                      {productKeys.map((key) => (
-                        <div
-                          key={key.id}
-                          className="bg-[#0F0F14] border border-[#2C2C34] rounded-xl p-4 hover:border-[#00FF9C] transition group"
-                        >
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <FaKey className="text-[#00FF9C]" />
-                                {key.status === "active" && (
-                                  <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                                    <FaCheckCircle /> Aktiv
+                      {productKeys.map((key) => {
+                        const expiryStatus = getExpiryStatus(key);
+                        return (
+                          <div
+                            key={key.id}
+                            className="bg-[#0F0F14] border border-[#2C2C34] rounded-xl p-4 hover:border-[#00FF9C] transition group"
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                                  <FaKey className="text-[#00FF9C]" />
+                                  {key.status === "active" && (
+                                    <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                                      <FaCheckCircle /> Aktiv
+                                    </span>
+                                  )}
+                                  <span className={`${expiryStatus.bgColor} ${expiryStatus.color} px-3 py-1 rounded-full text-xs font-bold border`}>
+                                    {expiryStatus.text}
                                   </span>
-                                )}
-                                <span className="text-xs text-gray-500">
-                                  {new Date(key.created_at).toLocaleDateString("de-DE")}
-                                </span>
+                                  <span className="text-xs text-gray-500">
+                                    Gekauft: {new Date(key.created_at).toLocaleDateString("de-DE")}
+                                  </span>
+                                  {key.expires_at && (
+                                    <span className="text-xs text-gray-500">
+                                      • Gültig bis: {new Date(key.expires_at).toLocaleDateString("de-DE")}
+                                    </span>
+                                  )}
+                                </div>
+                                <code className="block bg-[#1A1A1F] px-4 py-2 rounded-lg font-mono text-[#00FF9C] text-sm break-all">
+                                  {key.key_code}
+                                </code>
                               </div>
-                              <code className="block bg-[#1A1A1F] px-4 py-2 rounded-lg font-mono text-[#00FF9C] text-sm break-all">
-                                {key.key_code}
-                              </code>
+                              <button
+                                onClick={() => copyKey(key.key_code)}
+                                className="px-4 py-2 bg-[#00FF9C] hover:bg-[#00cc80] text-[#0F0F14] rounded-lg font-bold flex items-center gap-2 transition shrink-0 opacity-0 group-hover:opacity-100"
+                              >
+                                <FaCopy /> Copy
+                              </button>
                             </div>
-                            <button
-                              onClick={() => copyKey(key.key_code)}
-                              className="px-4 py-2 bg-[#00FF9C] hover:bg-[#00cc80] text-[#0F0F14] rounded-lg font-bold flex items-center gap-2 transition shrink-0 opacity-0 group-hover:opacity-100"
-                            >
-                              <FaCopy /> Copy
-                            </button>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))

@@ -28,6 +28,7 @@ type ResellerProduct = {
   status: string;
   keys_pool?: string;
   created_at?: string;
+  license_duration?: number; // License duration in days (0 = lifetime)
 };
 
 export default function ResellerInventory() {
@@ -307,9 +308,16 @@ export default function ResellerInventory() {
                         {item.description && (
                           <p className="text-sm text-gray-400 line-clamp-2">{item.description}</p>
                         )}
-                        <p className="text-xs text-gray-500 mt-2">
-                          Status: <span className={item.status === 'active' ? 'text-green-400' : 'text-red-400'}>{item.status === 'active' ? '✅ Aktiv' : '❌ Inaktiv'}</span>
-                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <p className="text-xs text-gray-500">
+                            Status: <span className={item.status === 'active' ? 'text-green-400' : 'text-red-400'}>{item.status === 'active' ? '✅ Aktiv' : '❌ Inaktiv'}</span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Laufzeit: <span className={item.license_duration === 0 ? 'text-green-400' : 'text-blue-400'}>
+                              {item.license_duration === 0 ? '♾️ Lifetime' : `⏰ ${item.license_duration || 30} Tage`}
+                            </span>
+                          </p>
+                        </div>
                       </div>
 
                       {/* Preis */}
