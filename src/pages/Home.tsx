@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import Sidebar from "../components/Sidebar";
 import {
   FaRocket,
   FaKey,
@@ -72,9 +73,13 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#1A1A2E] to-[#16213E] text-white overflow-hidden relative">
-      {/* MODERN ANIMATED BACKGROUND - Sellix/Shoppy Style */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+    <>
+      {/* Sidebar - Only show if user is logged in */}
+      {user && <Sidebar />}
+
+      <div className={`min-h-screen bg-gradient-to-br from-[#0A0A0F] via-[#1A1A2E] to-[#16213E] text-white overflow-hidden relative ${user ? 'lg:ml-64' : ''}`}>
+        {/* MODERN ANIMATED BACKGROUND - Sellix/Shoppy Style */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {/* Floating orbs with automatic smooth animations */}
         <div
           className="absolute w-96 h-96 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-full blur-3xl animate-float"
@@ -422,54 +427,55 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Custom animations */}
-      <style>{`
-        @keyframes gradient-x {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        @keyframes gradient-xy {
-          0%, 100% { background-position: 0% 0%; }
-          25% { background-position: 100% 0%; }
-          50% { background-position: 100% 100%; }
-          75% { background-position: 0% 100%; }
-        }
-        @keyframes float {
-          0%, 100% { transform: translate(0, 0px) rotate(0deg); }
-          50% { transform: translate(30px, 30px) rotate(180deg); }
-        }
-        @keyframes float-delay-1 {
-          0%, 100% { transform: translate(0, 0px) scale(1); }
-          50% { transform: translate(-20px, -40px) scale(1.1); }
-        }
-        @keyframes float-delay-2 {
-          0%, 100% { transform: translate(0, 0px) rotate(0deg) scale(1); }
-          50% { transform: translate(40px, -30px) rotate(-90deg) scale(0.9); }
-        }
-        @keyframes particle {
-          0% { opacity: 0; transform: translateY(0); }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { opacity: 0; transform: translateY(-100vh); }
-        }
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 3s ease infinite;
-        }
-        .animate-gradient-xy {
-          background-size: 200% 200%;
-          animation: gradient-xy 10s ease infinite;
-        }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-float-delay-1 { animation: float-delay-1 8s ease-in-out infinite; }
-        .animate-float-delay-2 { animation: float-delay-2 10s ease-in-out infinite; }
-        .animate-particle { animation: particle linear infinite; }
-        .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
-      `}</style>
-    </div>
+        {/* Custom animations */}
+        <style>{`
+          @keyframes gradient-x {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+          }
+          @keyframes gradient-xy {
+            0%, 100% { background-position: 0% 0%; }
+            25% { background-position: 100% 0%; }
+            50% { background-position: 100% 100%; }
+            75% { background-position: 0% 100%; }
+          }
+          @keyframes float {
+            0%, 100% { transform: translate(0, 0px) rotate(0deg); }
+            50% { transform: translate(30px, 30px) rotate(180deg); }
+          }
+          @keyframes float-delay-1 {
+            0%, 100% { transform: translate(0, 0px) scale(1); }
+            50% { transform: translate(-20px, -40px) scale(1.1); }
+          }
+          @keyframes float-delay-2 {
+            0%, 100% { transform: translate(0, 0px) rotate(0deg) scale(1); }
+            50% { transform: translate(40px, -30px) rotate(-90deg) scale(0.9); }
+          }
+          @keyframes particle {
+            0% { opacity: 0; transform: translateY(0); }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-100vh); }
+          }
+          @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+          .animate-gradient-x {
+            background-size: 200% 200%;
+            animation: gradient-x 3s ease infinite;
+          }
+          .animate-gradient-xy {
+            background-size: 200% 200%;
+            animation: gradient-xy 10s ease infinite;
+          }
+          .animate-float { animation: float 6s ease-in-out infinite; }
+          .animate-float-delay-1 { animation: float-delay-1 8s ease-in-out infinite; }
+          .animate-float-delay-2 { animation: float-delay-2 10s ease-in-out infinite; }
+          .animate-particle { animation: particle linear infinite; }
+          .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+        `}</style>
+      </div>
+    </>
   );
 }

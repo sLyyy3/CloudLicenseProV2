@@ -41,10 +41,16 @@ export default function ResellerInventory() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Edit Price Modal
-  const [editPriceModal, setEditPriceModal] = useState(false);
+  // Edit Modal - Now supports ALL fields
+  const [editModal, setEditModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ResellerProduct | null>(null);
-  const [editPrice, setEditPrice] = useState("");
+  const [editFields, setEditFields] = useState({
+    product_name: "",
+    description: "",
+    reseller_price: "",
+    status: "",
+    license_duration: "",
+  });
   const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
@@ -129,28 +135,64 @@ export default function ResellerInventory() {
     setLoading(false);
   }
 
-  async function handleEditPrice() {
-    if (!selectedProduct || !editPrice) return;
+  async function handleEditProduct() {
+    if (!selectedProduct) return;
 
     setEditLoading(true);
     try {
+      const updateData: any = {};
+
+      // Only update fields that have changed
+      if (editFields.product_name && editFields.product_name !== selectedProduct.product_name) {
+        updateData.product_name = editFields.product_name;
+      }
+      if (editFields.description !== undefined && editFields.description !== selectedProduct.description) {
+        updateData.description = editFields.description;
+      }
+      if (editFields.reseller_price && parseFloat(editFields.reseller_price) !== selectedProduct.reseller_price) {
+        updateData.reseller_price = parseFloat(editFields.reseller_price);
+      }
+      if (editFields.status && editFields.status !== selectedProduct.status) {
+        updateData.status = editFields.status;
+      }
+      if (editFields.license_duration !== undefined && parseInt(editFields.license_duration) !== selectedProduct.license_duration) {
+        updateData.license_duration = parseInt(editFields.license_duration);
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        openDialog({
+          type: "warning",
+          title: "⚠️ Keine Änderungen",
+          message: "Du hast keine Felder geändert.",
+          closeButton: "OK",
+        });
+        setEditLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from("reseller_products")
-        .update({ reseller_price: parseFloat(editPrice) })
+        .update(updateData)
         .eq("id", selectedProduct.id);
 
       if (error) throw error;
 
       openDialog({
         type: "success",
-        title: "✅ Preis aktualisiert",
-        message: `Neuer Preis: €${editPrice}`,
+        title: "✅ Produkt aktualisiert",
+        message: `${Object.keys(updateData).length} Feld(er) wurden erfolgreich aktualisiert!`,
         closeButton: "OK",
       });
 
-      setEditPriceModal(false);
+      setEditModal(false);
       setSelectedProduct(null);
-      setEditPrice("");
+      setEditFields({
+        product_name: "",
+        description: "",
+        reseller_price: "",
+        status: "",
+        license_duration: "",
+      });
 
       if (resellerId) await loadInventory(resellerId);
     } catch (err: any) {
@@ -340,12 +382,18 @@ export default function ResellerInventory() {
                       <button
                         onClick={() => {
                           setSelectedProduct(item);
-                          setEditPrice(item.reseller_price.toString());
-                          setEditPriceModal(true);
+                          setEditFields({
+                            product_name: item.product_name,
+                            description: item.description || "",
+                            reseller_price: item.reseller_price.toString(),
+                            status: item.status,
+                            license_duration: (item.license_duration || 0).toString(),
+                          });
+                          setEditModal(true);
                         }}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded font-bold flex items-center gap-2 transition"
                       >
-                        <FaEdit /> Preis ändern
+                        <FaEdit /> Bearbeiten
                       </button>
                       <button
                         onClick={() => navigate('/reseller-key-upload')}
@@ -375,44 +423,112 @@ export default function ResellerInventory() {
         </div>
       </div>
 
-      {/* EDIT PRICE MODAL */}
-      {editPriceModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-6">💰 Verkaufspreis ändern</h2>
+      {/* FULL EDIT MODAL - ALL FIELDS */}
+      {editModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-[#00FF9C]/30 rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-[#00FF9C]/10">
+            <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+              <div className="p-2 bg-[#00FF9C]/20 rounded-lg">
+                <FaEdit className="text-[#00FF9C] text-xl" />
+              </div>
+              Produkt bearbeiten
+            </h2>
 
-            <div className="space-y-4 mb-6">
+            <div className="space-y-5 mb-8">
+              {/* Product Name */}
               <div>
-                <p className="text-gray-400 mb-2">Produkt</p>
-                <p className="text-lg font-bold">{selectedProduct.product_name}</p>
+                <label className="block text-sm font-bold text-[#00FF9C] mb-2">📦 Produktname</label>
+                <input
+                  type="text"
+                  value={editFields.product_name}
+                  onChange={(e) => setEditFields({...editFields, product_name: e.target.value})}
+                  placeholder="z.B. Premium Fortnite Lifetime Key"
+                  className="w-full p-3 bg-[#0E0E12] border border-[#2C2C34] rounded-lg focus:border-[#00FF9C] focus:shadow-lg focus:shadow-[#00FF9C]/20 outline-none transition text-white"
+                />
               </div>
 
+              {/* Description */}
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Neuer Preis (€)</label>
+                <label className="block text-sm font-bold text-[#00FF9C] mb-2">📝 Beschreibung</label>
+                <textarea
+                  value={editFields.description}
+                  onChange={(e) => setEditFields({...editFields, description: e.target.value})}
+                  placeholder="Beschreibe dein Produkt..."
+                  rows={3}
+                  className="w-full p-3 bg-[#0E0E12] border border-[#2C2C34] rounded-lg focus:border-[#00FF9C] focus:shadow-lg focus:shadow-[#00FF9C]/20 outline-none transition text-white resize-none"
+                />
+              </div>
+
+              {/* Price and Status Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Price */}
+                <div>
+                  <label className="block text-sm font-bold text-[#00FF9C] mb-2">💰 Verkaufspreis (€)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editFields.reseller_price}
+                    onChange={(e) => setEditFields({...editFields, reseller_price: e.target.value})}
+                    className="w-full p-3 bg-[#0E0E12] border border-[#2C2C34] rounded-lg focus:border-[#00FF9C] focus:shadow-lg focus:shadow-[#00FF9C]/20 outline-none transition text-white"
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-bold text-[#00FF9C] mb-2">🔘 Status</label>
+                  <select
+                    value={editFields.status}
+                    onChange={(e) => setEditFields({...editFields, status: e.target.value})}
+                    className="w-full p-3 bg-[#0E0E12] border border-[#2C2C34] rounded-lg focus:border-[#00FF9C] focus:shadow-lg focus:shadow-[#00FF9C]/20 outline-none transition text-white"
+                  >
+                    <option value="active">✅ Aktiv</option>
+                    <option value="inactive">❌ Inaktiv</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* License Duration */}
+              <div>
+                <label className="block text-sm font-bold text-[#00FF9C] mb-2">⏰ Lizenz-Laufzeit (Tage)</label>
                 <input
                   type="number"
-                  step="0.01"
-                  value={editPrice}
-                  onChange={(e) => setEditPrice(e.target.value)}
-                  className="w-full p-3 bg-[#2C2C34] border border-[#3C3C44] rounded focus:border-[#00FF9C] outline-none transition"
+                  value={editFields.license_duration}
+                  onChange={(e) => setEditFields({...editFields, license_duration: e.target.value})}
+                  placeholder="0 = Lifetime"
+                  className="w-full p-3 bg-[#0E0E12] border border-[#2C2C34] rounded-lg focus:border-[#00FF9C] focus:shadow-lg focus:shadow-[#00FF9C]/20 outline-none transition text-white"
                 />
-                <p className="text-xs text-gray-500 mt-1">Einkaufspreis: €{selectedProduct.purchase_price}</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  {editFields.license_duration === "0" || !editFields.license_duration
+                    ? "♾️ Lifetime Lizenz"
+                    : `⏰ Läuft ab nach ${editFields.license_duration} Tagen`}
+                </p>
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4">
+                <p className="text-sm text-blue-300">
+                  💡 <strong>Tipp:</strong> Du kannst alle Felder auf einmal bearbeiten. Nur geänderte Werte werden gespeichert.
+                </p>
               </div>
             </div>
 
+            {/* Action Buttons */}
             <div className="flex gap-3">
               <button
-                onClick={() => setEditPriceModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded font-bold"
+                onClick={() => {
+                  setEditModal(false);
+                  setSelectedProduct(null);
+                }}
+                className="flex-1 px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-bold transition"
               >
                 Abbrechen
               </button>
               <button
-                onClick={handleEditPrice}
+                onClick={handleEditProduct}
                 disabled={editLoading}
-                className="flex-1 px-4 py-2 bg-[#00FF9C] text-[#0E0E12] hover:bg-[#00cc80] rounded font-bold disabled:opacity-50"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#00FF9C] to-cyan-400 text-[#0E0E12] hover:shadow-xl hover:shadow-[#00FF9C]/30 rounded-lg font-bold transition disabled:opacity-50"
               >
-                {editLoading ? "⏳..." : "✅ Speichern"}
+                {editLoading ? "⏳ Wird gespeichert..." : "✅ Änderungen speichern"}
               </button>
             </div>
           </div>

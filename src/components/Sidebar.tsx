@@ -228,18 +228,18 @@ export default function Sidebar() {
       </div>
 
       {/* Menu Items */}
-      <nav className="p-4 space-y-6 pb-32">
+      <nav className="p-3 space-y-4 pb-36">
         {menuItems.map((menuGroup) => (
           <div key={menuGroup.category}>
             {expanded && (
-              <div className="mb-3 px-3">
+              <div className="mb-2 px-2">
                 <h3 className="text-xs font-black text-[#00FF9C] uppercase tracking-widest opacity-80">
                   {menuGroup.category}
                 </h3>
               </div>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {menuGroup.items.map((item) => {
                 const active = isActive(item.path);
                 return (
@@ -247,7 +247,7 @@ export default function Sidebar() {
                     key={item.path}
                     onClick={() => navigate(item.path)}
                     className={`
-                      w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden
+                      w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-all duration-200 group relative overflow-hidden
                       ${
                         active
                           ? "bg-gradient-to-r from-[#00FF9C]/20 to-[#00D9FF]/20 border border-[#00FF9C]/50 shadow-lg shadow-[#00FF9C]/20 scale-105"
@@ -260,13 +260,13 @@ export default function Sidebar() {
                       <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
                     )}
 
-                    <div className={`relative z-10 w-8 h-8 rounded-lg bg-gradient-to-br ${item.gradient} flex items-center justify-center ${active ? 'shadow-lg' : 'opacity-60 group-hover:opacity-100'} transition-all`}>
-                      <item.icon className="text-white text-sm" />
+                    <div className={`relative z-10 w-7 h-7 rounded-lg bg-gradient-to-br ${item.gradient} flex items-center justify-center ${active ? 'shadow-lg' : 'opacity-60 group-hover:opacity-100'} transition-all`}>
+                      <item.icon className="text-white text-xs" />
                     </div>
 
                     {expanded && (
                       <>
-                        <span className={`text-sm font-bold flex-1 text-left relative z-10 ${active ? "text-white" : ""} transition-colors`}>
+                        <span className={`text-xs font-bold flex-1 text-left relative z-10 ${active ? "text-white" : ""} transition-colors`}>
                           {item.label}
                         </span>
                         {item.badge && (
@@ -274,7 +274,7 @@ export default function Sidebar() {
                             active
                               ? 'bg-[#00FF9C] text-[#0F0F14]'
                               : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
-                          } text-xs px-2 py-1 rounded-full font-black shadow-lg animate-pulse`}>
+                          } text-xs px-1.5 py-0.5 rounded-full font-black shadow-lg animate-pulse`}>
                             {item.badge}
                           </span>
                         )}
@@ -289,18 +289,18 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom Section - User Profile Card */}
-      <div className="fixed bottom-0 left-0 p-4 border-t border-[#1a1a24] bg-gradient-to-r from-[#0F0F14] to-[#1A1A1F] backdrop-blur-lg" style={{ width: expanded ? '16rem' : '5rem' }}>
+      <div className="fixed bottom-0 left-0 p-3 border-t border-[#1a1a24] bg-gradient-to-r from-[#0F0F14] to-[#1A1A1F] backdrop-blur-lg" style={{ width: expanded ? '16rem' : '5rem' }}>
         {expanded && (
-          <div className="mb-4 p-4 rounded-xl bg-gradient-to-br from-[#1a1a24] via-[#1A1A1F] to-[#0F0F14] border border-[#00FF9C]/30 shadow-xl hover:border-[#00FF9C]/60 transition-all cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00FF9C] to-[#00D9FF] flex items-center justify-center shadow-lg shadow-[#00FF9C]/50 group-hover:scale-110 transition-transform">
-                <FaUser className="text-[#0F0F14] text-sm font-bold" />
+          <div className="mb-2 p-2 rounded-lg bg-gradient-to-br from-[#1a1a24] via-[#1A1A1F] to-[#0F0F14] border border-[#00FF9C]/30 shadow-xl hover:border-[#00FF9C]/60 transition-all cursor-pointer group">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00FF9C] to-[#00D9FF] flex items-center justify-center shadow-lg shadow-[#00FF9C]/50 group-hover:scale-110 transition-transform">
+                <FaUser className="text-[#0F0F14] text-xs font-bold" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-black text-white truncate">{userName}</p>
                 <p className="text-xs font-bold truncate">
                   {userRole === "admin" && <span className="text-yellow-400">👑 ADMIN</span>}
-                  {userRole === "developer" && <span className="text-blue-400">👨‍💻 Developer</span>}
+                  {userRole === "developer" && <span className="text-blue-400">👨‍💻 Dev</span>}
                   {userRole === "reseller" && <span className="text-purple-400">💼 Reseller</span>}
                   {userRole === "customer" && <span className="text-green-400">👤 Kunde</span>}
                 </p>
@@ -311,10 +311,10 @@ export default function Sidebar() {
 
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600/40 hover:to-red-700/40 text-red-400 hover:text-red-300 transition-all border border-red-600/30 hover:border-red-600/60 shadow-lg hover:shadow-red-600/30 group"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600/40 hover:to-red-700/40 text-red-400 hover:text-red-300 transition-all border border-red-600/30 hover:border-red-600/60 shadow-lg hover:shadow-red-600/30 group"
         >
-          <FaSignOutAlt className="text-base flex-shrink-0 group-hover:scale-110 transition-transform" />
-          {expanded && <span className="text-sm font-bold">Logout</span>}
+          <FaSignOutAlt className="text-sm flex-shrink-0 group-hover:scale-110 transition-transform" />
+          {expanded && <span className="text-xs font-bold">Logout</span>}
         </button>
       </div>
     </aside>
