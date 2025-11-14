@@ -183,10 +183,15 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "customers" | "developers" | "resellers" | "licenses" | "transactions" | "analytics" | "health"
+    "overview" | "customers" | "developers" | "resellers" | "licenses" | "transactions" | "analytics" | "health" | "referrals"
   >("overview");
   const [godMode, setGodMode] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+
+  // REFERRAL MANAGEMENT STATE
+  const [referralUsers, setReferralUsers] = useState<any[]>([]);
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [totalReferralEarnings, setTotalReferralEarnings] = useState(0);
 
   useEffect(() => {
     async function init() {
@@ -411,6 +416,24 @@ export default function AdminDashboard() {
         activeLicenses,
         expiredLicenses,
       });
+
+      // ===== REFERRALS =====
+      const { data: referralUsersData } = await supabase
+        .from("referral_users")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      const { data: referralsData } = await supabase
+        .from("referrals")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      setReferralUsers(referralUsersData || []);
+      setReferrals(referralsData || []);
+
+      // Calculate total referral earnings
+      const totalEarnings = (referralsData || []).reduce((sum, ref) => sum + (ref.commission || 0), 0);
+      setTotalReferralEarnings(totalEarnings);
 
       // ===== SYSTEM HEALTH =====
       await checkSystemHealth();
@@ -909,6 +932,7 @@ export default function AdminDashboard() {
               { id: "developers", label: "Developer", icon: FaBox, count: stats.totalDevelopers },
               { id: "resellers", label: "Reseller", icon: FaStore, count: stats.totalResellers },
               { id: "licenses", label: "Lizenzen", icon: FaKey, count: stats.totalLicenses },
+              { id: "referrals", label: "Referrals", icon: FaHandshake, count: referralUsers.length },
               { id: "transactions", label: "Transaktionen", icon: FaMoneyBillWave, count: transactions.length },
               { id: "analytics", label: "Analytics", icon: FaChartPie },
               { id: "health", label: "System", icon: FaServer },
@@ -1883,6 +1907,264 @@ export default function AdminDashboard() {
                     <p className="text-xs text-yellow-300 mb-1">Success Rate</p>
                     <p className="text-xl font-bold text-yellow-400">99.8%</p>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* REFERRALS TAB */}
+          {activeTab === "referrals" && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-purple-600/20 p-3 rounded-xl">
+                  <FaHandshake className="text-purple-400 text-3xl" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-purple-400">Referral Management</h2>
+                  <p className="text-sm text-gray-400">Verwalte Referral Codes und Provisionen</p>
+                </div>
+              </div>
+
+              {/* STATS CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-purple-600/10 to-purple-600/5 border border-purple-600 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-purple-300">Total Referral Users</p>
+                    <FaUsers className="text-purple-400 text-xl" />
+                  </div>
+                  <p className="text-3xl font-black text-purple-400">{referralUsers.length}</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-600/10 to-green-600/5 border border-green-600 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-green-300">Total Referrals</p>
+                    <FaHandshake className="text-green-400 text-xl" />
+                  </div>
+                  <p className="text-3xl font-black text-green-400">{referrals.length}</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-yellow-600/10 to-yellow-600/5 border border-yellow-600 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-yellow-300">Total Earnings</p>
+                    <FaDollarSign className="text-yellow-400 text-xl" />
+                  </div>
+                  <p className="text-3xl font-black text-yellow-400">€{totalReferralEarnings.toFixed(2)}</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-600/10 to-blue-600/5 border border-blue-600 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-blue-300">Active Referrals</p>
+                    <FaCheckCircle className="text-blue-400 text-xl" />
+                  </div>
+                  <p className="text-3xl font-black text-blue-400">
+                    {referrals.filter(r => r.status === 'active').length}
+                  </p>
+                </div>
+              </div>
+
+              {/* REFERRAL USERS TABLE */}
+              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <FaUsers className="text-purple-400" />
+                    Referral Users ({referralUsers.length})
+                  </h3>
+                  <button
+                    onClick={() => loadAdminData()}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg font-bold flex items-center gap-2 transition"
+                  >
+                    <FaSync /> Refresh
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#2C2C34]">
+                        <th className="text-left p-3 text-sm text-gray-400">Email</th>
+                        <th className="text-left p-3 text-sm text-gray-400">Referral Code</th>
+                        <th className="text-center p-3 text-sm text-gray-400">Referral Count</th>
+                        <th className="text-center p-3 text-sm text-gray-400">Total Earnings</th>
+                        <th className="text-center p-3 text-sm text-gray-400">Status</th>
+                        <th className="text-left p-3 text-sm text-gray-400">Created</th>
+                        <th className="text-center p-3 text-sm text-gray-400">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {referralUsers.map((user) => {
+                        const userReferrals = referrals.filter(r => r.referrer_email === user.email);
+                        const userEarnings = userReferrals.reduce((sum, r) => sum + (r.commission || 0), 0);
+
+                        return (
+                          <tr key={user.id} className="border-b border-[#2C2C34] hover:bg-[#2C2C34]/30 transition">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <div className="bg-purple-600/20 p-2 rounded-lg">
+                                  <FaUsers className="text-purple-400" />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-sm">{user.email}</p>
+                                  <p className="text-xs text-gray-500">ID: {user.id.slice(0, 8)}...</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <code className="bg-[#0E0E12] px-3 py-1 rounded font-mono text-sm text-purple-400">
+                                  {user.referral_code}
+                                </code>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(user.referral_code);
+                                    openDialog({
+                                      type: "success",
+                                      title: "✅ Code kopiert!",
+                                      message: `Referral Code "${user.referral_code}" wurde kopiert!`,
+                                      closeButton: "OK"
+                                    });
+                                  }}
+                                  className="p-1.5 bg-purple-600/20 hover:bg-purple-600/40 rounded transition"
+                                >
+                                  <FaCopy className="text-purple-400 text-xs" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full font-bold text-sm">
+                                {user.referral_count || 0}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className="text-green-400 font-bold">
+                                €{userEarnings.toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                user.status === 'active'
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {user.status || 'active'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-sm text-gray-400">
+                              {new Date(user.created_at).toLocaleDateString("de-DE")}
+                            </td>
+                            <td className="p-3">
+                              <div className="flex gap-2 justify-center">
+                                <button
+                                  onClick={() => {
+                                    const userRefs = referrals.filter(r => r.referrer_email === user.email);
+                                    openDialog({
+                                      type: "info",
+                                      title: `📊 Referrals von ${user.email}`,
+                                      message: (
+                                        <div className="text-left space-y-2">
+                                          <p className="font-bold text-purple-400">Total: {userRefs.length} Referrals</p>
+                                          <div className="max-h-64 overflow-y-auto space-y-2">
+                                            {userRefs.map(ref => (
+                                              <div key={ref.id} className="bg-[#0E0E12] p-2 rounded">
+                                                <p className="text-xs">👤 {ref.referred_email}</p>
+                                                <p className="text-xs text-gray-500">Status: {ref.status}</p>
+                                                <p className="text-xs text-green-400">€{(ref.commission || 0).toFixed(2)}</p>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ),
+                                      closeButton: "Schließen"
+                                    });
+                                  }}
+                                  className="p-2 bg-blue-600/20 hover:bg-blue-600/40 rounded transition"
+                                  title="Details anzeigen"
+                                >
+                                  <FaEye className="text-blue-400" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {referralUsers.length === 0 && (
+                    <div className="text-center py-12">
+                      <FaHandshake className="text-6xl text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400">Keine Referral Users gefunden</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* REFERRALS TABLE */}
+              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-2xl p-6">
+                <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+                  <FaHandshake className="text-green-400" />
+                  Alle Referrals ({referrals.length})
+                </h3>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#2C2C34]">
+                        <th className="text-left p-3 text-sm text-gray-400">Referrer</th>
+                        <th className="text-left p-3 text-sm text-gray-400">Referred User</th>
+                        <th className="text-center p-3 text-sm text-gray-400">Status</th>
+                        <th className="text-center p-3 text-sm text-gray-400">Commission</th>
+                        <th className="text-left p-3 text-sm text-gray-400">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {referrals.slice(0, 20).map((ref) => (
+                        <tr key={ref.id} className="border-b border-[#2C2C34] hover:bg-[#2C2C34]/30 transition">
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-purple-600/20 p-2 rounded-lg">
+                                <FaUsers className="text-purple-400 text-sm" />
+                              </div>
+                              <p className="text-sm">{ref.referrer_email}</p>
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-green-600/20 p-2 rounded-lg">
+                                <FaUsers className="text-green-400 text-sm" />
+                              </div>
+                              <p className="text-sm">{ref.referred_email}</p>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              ref.status === 'active'
+                                ? 'bg-green-500/20 text-green-400'
+                                : ref.status === 'pending'
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : 'bg-gray-500/20 text-gray-400'
+                            }`}>
+                              {ref.status}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="text-green-400 font-bold">
+                              €{(ref.commission || 0).toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm text-gray-400">
+                            {new Date(ref.created_at).toLocaleDateString("de-DE")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {referrals.length === 0 && (
+                    <div className="text-center py-12">
+                      <FaHandshake className="text-6xl text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400">Keine Referrals gefunden</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
