@@ -28,7 +28,6 @@ export default function ResellerKeyUpload() {
   const [resellerId, setResellerId] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [productName, setProductName] = useState("");
-  const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number>(9.99);
   const [keysText, setKeysText] = useState("");
   const [parsedKeys, setParsedKeys] = useState<ParsedKey[]>([]);
@@ -166,7 +165,6 @@ export default function ResellerKeyUpload() {
           .insert({
             reseller_id: resellerId,
             product_name: productName,
-            description: description,
             reseller_price: price,
             quantity_available: 0, // Will be calculated from keys
             quantity_sold: 0,
@@ -223,7 +221,6 @@ export default function ResellerKeyUpload() {
 
       // Reset form
       setProductName("");
-      setDescription("");
       setPrice(9.99);
       setKeysText("");
       setParsedKeys([]);
@@ -299,19 +296,6 @@ export default function ResellerKeyUpload() {
                       onChange={(e) => setProductName(e.target.value)}
                       placeholder="z.B. CS2 Cheat Premium"
                       className="w-full p-3 rounded-lg bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold mb-2 text-gray-300">
-                      Beschreibung
-                    </label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Beschreibe dein Produkt..."
-                      rows={3}
-                      className="w-full p-3 rounded-lg bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none resize-none"
                     />
                   </div>
 
@@ -490,7 +474,7 @@ export default function ResellerKeyUpload() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold">2.</span>
-                <span>Fülle Produkt Info aus (Name, Beschreibung, Preis)</span>
+                <span>Fülle Produkt Info aus (Name, Preis)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-blue-400 font-bold">3.</span>
