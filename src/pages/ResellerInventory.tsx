@@ -17,24 +17,24 @@ import {
 import { useDialog } from "../components/Dialog";
 import Sidebar from "../components/Sidebar";
 
-type ResallerProduct = {
+type ResellerProduct = {
   id: string;
-  product_id: string;
-  developer_id: string;
+  reseller_id: string;
   product_name: string;
-  developer_name: string;
-  purchase_price: number;
-  resale_price: number;
-  quantity_purchased: number;
+  description?: string;
+  reseller_price: number;
   quantity_available: number;
   quantity_sold: number;
+  status: string;
+  keys_pool?: string;
+  created_at?: string;
 };
 
 export default function ResellerInventory() {
   const navigate = useNavigate();
   const { Dialog: DialogComponent, open: openDialog } = useDialog();
 
-  const [inventory, setInventory] = useState<ResallerProduct[]>([]);
+  const [inventory, setInventory] = useState<ResellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [resellerId, setResellerId] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function ResellerInventory() {
 
   // Edit Price Modal
   const [editPriceModal, setEditPriceModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ResallerProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ResellerProduct | null>(null);
   const [editPrice, setEditPrice] = useState("");
   const [editLoading, setEditLoading] = useState(false);
 
@@ -135,7 +135,7 @@ export default function ResellerInventory() {
     try {
       const { error } = await supabase
         .from("reseller_products")
-        .update({ resale_price: parseFloat(editPrice) })
+        .update({ reseller_price: parseFloat(editPrice) })
         .eq("id", selectedProduct.id);
 
       if (error) throw error;
@@ -163,25 +163,19 @@ export default function ResellerInventory() {
     setEditLoading(false);
   }
 
-  const filtered = inventory.filter(
-    (item) =>
-      item.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.developer_name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = inventory.filter((item) =>
+    item.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const totalValue = inventory.reduce(
-    (sum, item) => sum + item.quantity_available * item.resale_price,
+    (sum, item) => sum + item.quantity_available * item.reseller_price,
     0
   );
 
-  const totalInvested = inventory.reduce(
-    (sum, item) => sum + item.quantity_purchased * item.purchase_price,
-    0
-  );
-
-  const totalProfit = inventory.reduce((sum, item) => {
-    const profit = item.quantity_sold * (item.resale_price - item.purchase_price);
-    return sum + profit;
+  const totalRevenue = inventory.reduce((sum, item) => {
+    const revenue = item.quantity_sold * item.reseller_price;
+    return sum + revenue;
   }, 0);
 
   if (loading) {
@@ -243,24 +237,26 @@ export default function ResellerInventory() {
                 <p className="text-xs text-gray-500 mt-2">{inventory.length} Produkte</p>
               </div>
 
-              {/* Investiert */}
+              {/* Keys verfügbar */}
               <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-blue-500/20 rounded-lg p-6 hover:border-blue-500/50 transition shadow-lg shadow-blue-500/5">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-gray-400 text-sm">💰 Investiert</p>
+                  <p className="text-gray-400 text-sm">🔑 Keys verfügbar</p>
                   <FaCoins className="text-blue-400 text-2xl" />
                 </div>
-                <p className="text-4xl font-bold text-blue-400">€{totalInvested.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-2">Gekaufte Menge</p>
+                <p className="text-4xl font-bold text-blue-400">
+                  {inventory.reduce((sum, item) => sum + item.quantity_available, 0)}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">Zum Verkauf bereit</p>
               </div>
 
-              {/* Gewinn */}
+              {/* Umsatz */}
               <div className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-500/20 rounded-lg p-6 hover:border-green-500/50 transition shadow-lg shadow-green-500/5">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-gray-400 text-sm">📈 Gewinn</p>
+                  <p className="text-gray-400 text-sm">💰 Umsatz</p>
                   <FaPercent className="text-green-400 text-2xl" />
                 </div>
-                <p className="text-4xl font-bold text-green-400">€{totalProfit.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-2">Aus Verkäufen</p>
+                <p className="text-4xl font-bold text-green-400">€{totalRevenue.toFixed(2)}</p>
+                <p className="text-xs text-gray-500 mt-2">{inventory.reduce((sum, item) => sum + item.quantity_sold, 0)} Keys verkauft</p>
               </div>
             </div>
 
@@ -270,7 +266,7 @@ export default function ResellerInventory() {
                 <FaSearch className="absolute left-3 top-3 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Nach Produkt oder Developer suchen..."
+                  placeholder="Nach Produkt oder Beschreibung suchen..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-[#1A1A1F] border border-[#2C2C34] rounded-lg focus:border-[#00FF9C] focus:shadow-lg focus:shadow-[#00FF9C]/20 outline-none transition"
@@ -304,19 +300,23 @@ export default function ResellerInventory() {
                     key={item.id}
                     className="bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border border-[#2C2C34] rounded-lg p-6 hover:border-[#00FF9C]/30 transition shadow-lg hover:shadow-[#00FF9C]/10"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 items-center mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center mb-4">
                       {/* Product Info */}
                       <div className="md:col-span-2">
                         <h3 className="text-xl font-bold mb-1">{item.product_name}</h3>
-                        <p className="text-sm text-gray-400">von {item.developer_name}</p>
-                        <p className="text-xs text-[#00FF9C] mt-2">ID: {item.product_id.slice(0, 8)}...</p>
+                        {item.description && (
+                          <p className="text-sm text-gray-400 line-clamp-2">{item.description}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-2">
+                          Status: <span className={item.status === 'active' ? 'text-green-400' : 'text-red-400'}>{item.status === 'active' ? '✅ Aktiv' : '❌ Inaktiv'}</span>
+                        </p>
                       </div>
 
-                      {/* Preise */}
+                      {/* Preis */}
                       <div className="bg-[#0E0E12]/50 rounded p-4">
                         <p className="text-xs text-gray-400 mb-2">💵 Verkaufspreis</p>
-                        <p className="text-2xl font-bold text-[#00FF9C]">€{item.resale_price}</p>
-                        <p className="text-xs text-gray-500 mt-1">Einkauf: €{item.purchase_price}</p>
+                        <p className="text-2xl font-bold text-[#00FF9C]">€{item.reseller_price?.toFixed(2) || '0.00'}</p>
+                        <p className="text-xs text-gray-500 mt-1">pro Key</p>
                       </div>
 
                       {/* Mengen */}
@@ -325,20 +325,14 @@ export default function ResellerInventory() {
                         <p className="text-2xl font-bold text-blue-400">{item.quantity_available}</p>
                         <p className="text-xs text-gray-500 mt-1">Verkauft: {item.quantity_sold}</p>
                       </div>
-
-                      {/* Gewinn */}
-                      <div className="bg-[#0E0E12]/50 rounded p-4">
-                        <p className="text-xs text-gray-400 mb-2">📈 Gewinn/Key</p>
-                        <p className="text-2xl font-bold text-green-400">€{(item.resale_price - item.purchase_price).toFixed(2)}</p>
-                      </div>
                     </div>
 
                     {/* ACTIONS */}
-                    <div className="flex gap-3 pt-4 border-t border-[#2C2C34]">
+                    <div className="flex gap-3 pt-4 border-t border-[#2C2C34] mt-4">
                       <button
                         onClick={() => {
                           setSelectedProduct(item);
-                          setEditPrice(item.resale_price.toString());
+                          setEditPrice(item.reseller_price.toString());
                           setEditPriceModal(true);
                         }}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded font-bold flex items-center gap-2 transition"
@@ -346,10 +340,10 @@ export default function ResellerInventory() {
                         <FaEdit /> Preis ändern
                       </button>
                       <button
-                        onClick={() => navigate(`/reseller-sales?product=${item.product_id}`)}
+                        onClick={() => navigate('/reseller-key-upload')}
                         className="px-4 py-2 bg-[#00FF9C] text-[#0E0E12] hover:bg-[#00cc80] rounded font-bold flex items-center gap-2 transition"
                       >
-                        <FaDownload /> Verkaufen
+                        <FaPlus /> Mehr Keys hinzufügen
                       </button>
                     </div>
                   </div>
