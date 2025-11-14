@@ -162,14 +162,22 @@ export default function CustomerShop() {
 
       if (orderError) throw orderError;
 
-      // Create Keys in DB
-      for (const key of keys) {
-        await supabase.from("customer_keys").insert({
-          customer_email: user.email,
-          key_code: key,
-          status: "active",
-          order_id: orderData.id,
-        });
+      // Create Keys in DB (bulk insert)
+      const keyInserts = keys.map((key) => ({
+        customer_email: user.email,
+        key_code: key,
+        status: "active",
+        order_id: orderData.id,
+        reseller_product_id: null, // Direct purchase from developer, not from reseller
+      }));
+
+      const { error: keysError } = await supabase
+        .from("customer_keys")
+        .insert(keyInserts);
+
+      if (keysError) {
+        console.error("❌ Fehler beim Speichern der Keys:", keysError);
+        throw new Error(`Keys konnten nicht gespeichert werden: ${keysError.message}`);
       }
 
       console.log("✅ Order erstellt:", orderData.id);

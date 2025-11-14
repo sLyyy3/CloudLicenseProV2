@@ -31,6 +31,7 @@ export default function Products() {
       try {
         const { data: authData, error: authError } = await supabase.auth.getUser();
         if (authError || !authData.user) {
+          setLoading(false);
           openDialog({
             type: "error",
             title: "❌ Authentifizierung erforderlich",
@@ -42,6 +43,7 @@ export default function Products() {
 
         const orgId = (authData.user?.user_metadata as any)?.organization_id;
         if (!orgId) {
+          setLoading(false);
           openDialog({
             type: "error",
             title: "❌ Organisation fehlt",
@@ -58,6 +60,7 @@ export default function Products() {
           .maybeSingle();
 
         if (orgError || !orgData) {
+          setLoading(false);
           openDialog({
             type: "error",
             title: "❌ Organisation nicht gefunden",
@@ -70,6 +73,7 @@ export default function Products() {
         setOrganizationId(orgId);
         await loadData(orgId);
       } catch (err) {
+        setLoading(false);
         openDialog({
           type: "error",
           title: "❌ Fehler beim Laden",

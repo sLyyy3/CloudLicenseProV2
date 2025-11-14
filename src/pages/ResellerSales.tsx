@@ -9,6 +9,8 @@ import {
   FaCopy,
   FaCheckCircle,
   FaExclamationTriangle,
+  FaEye,
+  FaTimes,
 } from "react-icons/fa";
 import Sidebar from "../components/Sidebar";
 
@@ -73,6 +75,7 @@ export default function ResellerSales() {
   const [sortBy, setSortBy] = useState("date-desc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [viewingKeys, setViewingKeys] = useState<string | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -540,6 +543,12 @@ export default function ResellerSales() {
                         </span>
                         <div className="flex gap-2">
                           <button
+                            onClick={() => setViewingKeys(trans.id)}
+                            className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1 font-bold"
+                          >
+                            <FaEye /> Keys anzeigen
+                          </button>
+                          <button
                             onClick={() => copyTransactionKeys(trans.license_keys)}
                             className="text-[#00FF9C] hover:text-[#00E88A] text-sm flex items-center gap-1"
                           >
@@ -583,6 +592,96 @@ export default function ResellerSales() {
           </div>
         </div>
       </main>
+
+      {/* VIEW KEYS MODAL */}
+      {viewingKeys && (() => {
+        const trans = transactions.find(t => t.id === viewingKeys);
+        if (!trans) return null;
+
+        return (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setViewingKeys(null)}>
+            <div className="bg-[#1a1a24] border border-[#2a2a34] rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#00FF9C] flex items-center gap-2">
+                    <FaEye /> Verteilte Keys
+                  </h2>
+                  <p className="text-sm text-[#a0a0a8] mt-1">
+                    Kunde: {trans.customer_name} ({trans.customer_email})
+                  </p>
+                </div>
+                <button
+                  onClick={() => setViewingKeys(null)}
+                  className="p-2 hover:bg-[#2a2a34] rounded-lg transition"
+                >
+                  <FaTimes className="text-xl text-gray-400 hover:text-white" />
+                </button>
+              </div>
+
+              {/* Transaction Info */}
+              <div className="bg-[#0F0F14] border border-[#2a2a34] rounded-lg p-4 mb-6">
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="text-[#a0a0a8]">Anzahl Keys</p>
+                    <p className="text-white font-bold text-lg">{trans.quantity}</p>
+                  </div>
+                  <div>
+                    <p className="text-[#a0a0a8]">Betrag</p>
+                    <p className="text-[#00FF9C] font-bold text-lg">€{Number(trans.amount).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[#a0a0a8]">Datum</p>
+                    <p className="text-white font-bold">{new Date(trans.created_at).toLocaleDateString("de-DE")}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keys List */}
+              <div className="space-y-2 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-white">🔑 Lizenzschlüssel</h3>
+                  <button
+                    onClick={() => {
+                      copyTransactionKeys(trans.license_keys);
+                      setMessage({ type: "success", text: "✅ Alle Keys kopiert!" });
+                    }}
+                    className="px-3 py-1 bg-[#00FF9C] text-[#0F0F14] rounded font-bold text-sm hover:bg-[#00E88A] transition flex items-center gap-2"
+                  >
+                    <FaCopy /> Alle kopieren
+                  </button>
+                </div>
+
+                {trans.license_keys.map((key, index) => (
+                  <div key={index} className="bg-[#0F0F14] border border-[#2a2a34] rounded-lg p-3 flex items-center justify-between group hover:border-[#00FF9C]/30 transition">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[#00FF9C] font-bold text-sm">#{index + 1}</span>
+                      <code className="text-white font-mono text-sm bg-[#1a1a24] px-3 py-1 rounded">{key}</code>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(key);
+                        setMessage({ type: "success", text: `✅ Key #${index + 1} kopiert!` });
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-[#00FF9C] hover:text-[#00E88A] transition"
+                    >
+                      <FaCopy />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setViewingKeys(null)}
+                className="w-full py-3 bg-[#2a2a34] hover:bg-[#3a3a44] text-white rounded-lg font-bold transition"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

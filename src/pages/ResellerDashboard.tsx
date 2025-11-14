@@ -11,6 +11,7 @@ import {
   FaUsers,
   FaRocket,
   FaFire,
+  FaArrowLeft,
 } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
 import Sidebar from "../components/Sidebar";
@@ -86,42 +87,56 @@ export default function ResellerDashboard() {
   async function loadStats(reId: string) {
     setLoading(true);
     try {
+      // Get products with sales and price info
       const { data: productsData } = await supabase
         .from("reseller_products")
-        .select("quantity_available, quantity_sold")
+        .select("quantity_available, quantity_sold, reseller_price, product_name")
         .eq("reseller_id", reId);
 
       let totalKeysAvailable = 0;
       let totalSales = 0;
+      let totalRevenue = 0;
 
       if (productsData) {
-        totalKeysAvailable = productsData.reduce((sum, p) => sum + p.quantity_available, 0);
-        totalSales = productsData.reduce((sum, p) => sum + p.quantity_sold, 0);
+        totalKeysAvailable = productsData.reduce((sum, p) => sum + (p.quantity_available || 0), 0);
+        totalSales = productsData.reduce((sum, p) => sum + (p.quantity_sold || 0), 0);
+        // Calculate revenue from products: quantity_sold * price
+        totalRevenue = productsData.reduce((sum, p) => sum + ((p.quantity_sold || 0) * (p.reseller_price || 0)), 0);
       }
 
-      const { data: salesData } = await supabase
-        .from("reseller_sales")
-        .select("total_price")
-        .eq("reseller_id", reId);
-
-      let totalRevenue = 0;
-      if (salesData) {
-        totalRevenue = salesData.reduce((sum, s) => sum + s.total_price, 0);
-      }
-
+      // Get recent sales from customer_orders
       const { data: recentSalesData } = await supabase
-        .from("reseller_sales")
-        .select("*")
-        .eq("reseller_id", reId)
+        .from("customer_keys")
+        .select(`
+          id,
+          key_code,
+          created_at,
+          customer_email,
+          reseller_product_id
+        `)
+        .eq("reseller_product_id", reId ? reId : "null")
         .order("created_at", { ascending: false })
         .limit(5);
+
+      // Enrich sales data with product info
+      const enrichedSales = (recentSalesData || []).map((sale: any) => {
+        const product = productsData?.find(p => p.product_name);
+        return {
+          product_name: product?.product_name || "Unbekannt",
+          customer_name: sale.customer_email?.split('@')[0] || "Kunde",
+          customer_email: sale.customer_email,
+          quantity: 1,
+          total_price: product?.reseller_price || 0,
+          created_at: sale.created_at,
+        };
+      });
 
       setStats({
         totalProducts: productsData?.length || 0,
         totalKeysAvailable,
         totalSales,
         totalRevenue,
-        recentSales: recentSalesData || [],
+        recentSales: enrichedSales,
       });
     } catch (err) {
       console.error("Error loading stats:", err);
@@ -154,23 +169,33 @@ export default function ResellerDashboard() {
 
         {/* HEADER */}
         <div className="ml-0 md:ml-64 bg-gradient-to-r from-[#1A1A1F] via-[#2C2C34] to-[#1A1A1F] border-b border-[#00FF9C]/20 p-6 sticky top-0 z-40 shadow-lg shadow-[#00FF9C]/10">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-[#00FF9C]/20 rounded-lg">
-                <FaStore className="text-[#00FF9C] text-3xl" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">{reseller?.shop_name || "Mein Shop"}</h1>
-                <p className="text-gray-400 text-sm">Reseller Dashboard</p>
-              </div>
-            </div>
-
+          <div className="max-w-7xl mx-auto">
+            {/* BACK BUTTON */}
             <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold flex items-center gap-2 transition"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 text-gray-400 hover:text-[#00FF9C] transition mb-4 text-sm font-semibold"
             >
-              <FaSignOutAlt /> Logout
+              <FaArrowLeft /> Zurück zur Startseite
             </button>
+
+            <div className="flex items-center justify-between gap-6 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-[#00FF9C]/20 rounded-lg">
+                  <FaStore className="text-[#00FF9C] text-3xl" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold">{reseller?.shop_name || "Mein Shop"}</h1>
+                  <p className="text-gray-400 text-sm">Reseller Dashboard</p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-bold flex items-center gap-2 transition"
+              >
+                <FaSignOutAlt /> Logout
+              </button>
+            </div>
           </div>
         </div>
 
@@ -251,18 +276,18 @@ export default function ResellerDashboard() {
                 </button>
               </div>
 
-              {/* Marketplace */}
+              {/* Keys hochladen */}
               <div
-                onClick={() => navigate("/reseller-marketplace")}
-                className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-600/30 rounded-lg p-8 hover:border-green-600/80 hover:shadow-lg hover:shadow-green-600/20 transition cursor-pointer"
+                onClick={() => navigate("/reseller-key-upload")}
+                className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-purple-600/30 rounded-lg p-8 hover:border-purple-600/80 hover:shadow-lg hover:shadow-purple-600/20 transition cursor-pointer"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <FaChartBar className="text-4xl text-green-400" />
-                  <h3 className="text-2xl font-bold">Marketplace</h3>
+                  <FaRocket className="text-4xl text-purple-400" />
+                  <h3 className="text-2xl font-bold">Keys hochladen</h3>
                 </div>
-                <p className="text-gray-400 mb-6">Kaufe neue Produkte von Developern</p>
-                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-bold transition w-full">
-                  Zum Marketplace →
+                <p className="text-gray-400 mb-6">Lade neue Keys hoch die du erhalten hast</p>
+                <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded font-bold transition w-full">
+                  Keys hochladen →
                 </button>
               </div>
             </div>
@@ -276,10 +301,10 @@ export default function ResellerDashboard() {
                 <FaBox className="text-blue-400" /> Lager
               </button>
               <button
-                onClick={() => navigate("/reseller-marketplace")}
-                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-green-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
+                onClick={() => navigate("/reseller-key-upload")}
+                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-purple-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
               >
-                <FaRocket className="text-green-400" /> Marketplace
+                <FaRocket className="text-purple-400" /> Keys hochladen
               </button>
               <button
                 onClick={() => navigate("/reseller-sales")}

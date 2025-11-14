@@ -48,17 +48,30 @@ export default function DeveloperResellers() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser();
-      const orgId = (data.user?.user_metadata as any)?.organization_id;
-      const isDev = (data.user?.user_metadata as any)?.is_developer;
+      try {
+        const { data, error: authError } = await supabase.auth.getUser();
 
-      if (!orgId || !isDev) {
-        navigate("/dev-login", { replace: true });
-        return;
+        if (authError || !data.user) {
+          setLoading(false);
+          navigate("/dev-login", { replace: true });
+          return;
+        }
+
+        const orgId = (data.user?.user_metadata as any)?.organization_id;
+        const isDev = (data.user?.user_metadata as any)?.is_developer;
+
+        if (!orgId || !isDev) {
+          setLoading(false);
+          navigate("/dev-login", { replace: true });
+          return;
+        }
+
+        setOrganizationId(orgId);
+        await loadData(orgId);
+      } catch (err) {
+        setLoading(false);
+        console.error("Init error:", err);
       }
-
-      setOrganizationId(orgId);
-      await loadData(orgId);
     }
     init();
   }, []);

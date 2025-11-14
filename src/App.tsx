@@ -35,6 +35,7 @@ import DeveloperResellers from "./pages/DeveloperResellers";
 import DeveloperAPIKeys from "./pages/DeveloperAPIKeys";
 import DeveloperBilling from "./pages/DeveloperBilling";
 import DeveloperDocs from "./pages/DeveloperDocs";
+import DeveloperKeyGenerator from "./pages/DeveloperKeyGenerator";
 
 // ===== RESELLER PAGES =====
 import ResellerDashboard from "./pages/ResellerDashboard";
@@ -43,6 +44,7 @@ import ResellerInventory from "./pages/ResellerInventory";
 import ResellerDevelopers from "./pages/ResellerDevelopers";
 import ResellerAnalytics from "./pages/ResellerAnalytics";
 import ResellerSales from "./pages/ResellerSales";
+import ResellerKeyUpload from "./pages/ResellerKeyUpload";
 
 // ===== ADMIN PAGES =====
 import AdminDashboard from "./pages/AdminDashboard";
@@ -61,7 +63,11 @@ import Products from "./pages/Products";
 import Activations from "./pages/Activations";
 import CustomerPortal from "./pages/CustomerPortal";
 import CreateLicense from "./pages/CreateLicense";
-import Licenses from "./pages/Licenses"; // ✅ NEU: Licenses Import hinzugefügt!
+import Licenses from "./pages/Licenses";
+import ProfileSettings from "./pages/ProfileSettings";
+import CustomerDashboard from "./pages/CustomerDashboard";
+import ResellerShop from "./pages/ResellerShop";
+import ResellerShopsBrowse from "./pages/ResellerShopsBrowse";
 
 // ===== LICENSE AUTH STATE =====
 interface LicenseAuthState {
@@ -207,10 +213,13 @@ export default function App() {
 
         {/* ===== PUBLIC PAGES ===== */}
         <Route path="/shop" element={<CustomerShop />} />
-        <Route path="/validate-key" element={<KeyValidator />} />
+        <Route path="/key-validator" element={<KeyValidator />} />
+        <Route path="/validate-key" element={<KeyValidator />} /> {/* Alias for compatibility */}
         <Route path="/bundles" element={<KeyBundles />} />
         <Route path="/reviews" element={<CustomerReviews />} />
         <Route path="/portal" element={<CustomerPortal />} />
+        <Route path="/reseller-shops" element={<ResellerShopsBrowse />} />
+        <Route path="/reseller-shop/:resellerId" element={<ResellerShop />} />
 
         {/* ===== LICENSE LOGIN ROUTE ===== */}
         <Route
@@ -234,6 +243,14 @@ export default function App() {
         {/* ===== DEVELOPER PROTECTED ROUTES ===== */}
         <Route
           path="/dev-dashboard"
+          element={
+            <ProtectedRoute>
+              <DeveloperDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/developer-dashboard"
           element={
             <ProtectedRoute>
               <DeveloperDashboard />
@@ -281,6 +298,14 @@ export default function App() {
           }
         />
         <Route
+          path="/dev-key-generator"
+          element={
+            <ProtectedRoute>
+              <DeveloperKeyGenerator />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/dev-api-keys"
           element={
             <ProtectedRoute>
@@ -318,19 +343,28 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* REMOVED: Reseller Marketplace - Resellers now upload keys externally */}
+        {/* <Route
           path="/reseller-marketplace"
           element={
             <ProtectedRoute>
               <ResellerMarketplace />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/reseller-inventory"
           element={
             <ProtectedRoute>
               <ResellerInventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reseller-key-upload"
+          element={
+            <ProtectedRoute>
+              <ResellerKeyUpload />
             </ProtectedRoute>
           }
         />
@@ -385,6 +419,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer-dashboard"
+          element={
+            <ProtectedRoute>
+              <CustomerDashboard />
             </ProtectedRoute>
           }
         />
@@ -444,6 +486,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile-settings"
+          element={
+            <ProtectedRoute>
+              <ProfileSettings />
             </ProtectedRoute>
           }
         />

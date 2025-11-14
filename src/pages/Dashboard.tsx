@@ -34,6 +34,7 @@ import {
   usePagination,
   exportToCSV,
 } from "../utils/helpers.tsx";
+import { generateProfessionalKey } from "../utils/keyGenerator";
 
 type License = {
   id: string;
@@ -340,10 +341,7 @@ export default function Dashboard() {
       const newLicenses = [];
 
       for (let i = 0; i < bulkCount; i++) {
-        const key = `KEY-${Math.random()
-          .toString(36)
-          .substring(2, 10)
-          .toUpperCase()}-${Date.now() + i}`;
+        const key = generateProfessionalKey();
 
         newLicenses.push({
           license_key: key,
@@ -495,10 +493,7 @@ export default function Dashboard() {
     setCreatingLicense(true);
 
     try {
-      const key = `KEY-${Math.random()
-        .toString(36)
-        .substring(2, 10)
-        .toUpperCase()}-${Date.now()}`;
+      const key = generateProfessionalKey();
 
       const { error } = await supabase.from("licenses").insert({
         license_key: key,
@@ -732,10 +727,7 @@ export default function Dashboard() {
                       type="checkbox"
                       onChange={toggleSelectAll}
                       checked={(() => {
-                        const items = (pagination as any).currentPage || 
-                                     (pagination as any).items || 
-                                     (pagination as any).paginatedItems ||
-                                     [];
+                        const items = pagination.currentItems || [];
                         return selectedLicenses.size === items.length && items.length > 0;
                       })()}
                       className="cursor-pointer"
@@ -751,11 +743,8 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {(() => {
-                  const items = (pagination as any).currentPage || 
-                               (pagination as any).items || 
-                               (pagination as any).paginatedItems ||
-                               [];
-                  
+                  const items = pagination.currentItems || [];
+
                   if (!Array.isArray(items) || items.length === 0) {
                     return (
                       <tr>
@@ -766,7 +755,7 @@ export default function Dashboard() {
                       </tr>
                     );
                   }
-                  
+
                   return items.map((license) => (
                     <tr
                       key={license.id}
@@ -835,21 +824,21 @@ export default function Dashboard() {
           </div>
 
           {/* PAGINATION */}
-          {((pagination as any).totalPages || 1) > 1 && (
+          {pagination.totalPages > 1 && (
             <div className="flex items-center justify-center gap-4 p-6 border-t border-[#2a2a34]">
               <button
-                onClick={() => pagination.goToPage((pagination as any).currentPageNumber - 1)}
-                disabled={(pagination as any).currentPageNumber === 1}
+                onClick={() => pagination.goToPage(pagination.currentPage - 1)}
+                disabled={pagination.currentPage === 1}
                 className="p-2 disabled:opacity-50"
               >
                 <FaChevronLeft />
               </button>
               <span className="text-sm text-[#a0a0a8]">
-                Seite {(pagination as any).currentPageNumber || 1} von {(pagination as any).totalPages || 1}
+                Seite {pagination.currentPage} von {pagination.totalPages}
               </span>
               <button
-                onClick={() => pagination.goToPage((pagination as any).currentPageNumber + 1)}
-                disabled={(pagination as any).currentPageNumber === (pagination as any).totalPages}
+                onClick={() => pagination.goToPage(pagination.currentPage + 1)}
+                disabled={pagination.currentPage === pagination.totalPages}
                 className="p-2 disabled:opacity-50"
               >
                 <FaChevronRight />

@@ -56,24 +56,79 @@ export default function ResellerDevelopers() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser();
-      const orgId = (data.user?.user_metadata as any)?.organization_id;
+      try {
+        const { data, error: authError } = await supabase.auth.getUser();
 
-      if (!orgId) {
-        navigate("/reseller-login", { replace: true });
-        return;
-      }
+        if (authError || !data.user) {
+          setLoading(false);
+          openDialog({
+            type: "warning",
+            title: "🔒 Anmeldung erforderlich",
+            message: "Bitte melde dich als Reseller an!",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/reseller-login", { replace: true }), 1500);
+          return;
+        }
 
-      // Get reseller_id
-      const { data: resellerData } = await supabase
-        .from("resellers")
-        .select("id")
-        .eq("organization_id", orgId)
-        .single();
+        const orgId = (data.user?.user_metadata as any)?.organization_id;
+        const userRole = (data.user?.user_metadata as any)?.role;
 
-      if (resellerData) {
+        // Check if user is actually a reseller
+        if (userRole === "developer") {
+          setLoading(false);
+          openDialog({
+            type: "error",
+            title: "❌ Zugriff verweigert",
+            message: "Du bist als Developer eingeloggt. Diese Seite ist nur für Reseller!",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/developer-dashboard", { replace: true }), 2000);
+          return;
+        }
+
+        if (!orgId) {
+          setLoading(false);
+          openDialog({
+            type: "error",
+            title: "❌ Organisation fehlt",
+            message: "Bitte melde dich erneut an.",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/reseller-login", { replace: true }), 1500);
+          return;
+        }
+
+        // Get reseller_id
+        const { data: resellerData, error: resellerError } = await supabase
+          .from("resellers")
+          .select("id")
+          .eq("organization_id", orgId)
+          .maybeSingle();
+
+        if (resellerError || !resellerData) {
+          setLoading(false);
+          openDialog({
+            type: "error",
+            title: "❌ Reseller nicht gefunden",
+            message: "Dein Account ist nicht als Reseller registriert.",
+            closeButton: "OK",
+          });
+          setTimeout(() => navigate("/reseller-login", { replace: true }), 1500);
+          return;
+        }
+
         setResellerId(resellerData.id);
         await loadDevelopers(resellerData.id);
+      } catch (err) {
+        setLoading(false);
+        console.error("Init error:", err);
+        openDialog({
+          type: "error",
+          title: "❌ Fehler",
+          message: "Ein Fehler ist aufgetreten beim Laden der Daten.",
+          closeButton: "OK",
+        });
       }
     }
     init();
@@ -184,7 +239,7 @@ export default function ResellerDevelopers() {
           .from("reseller_products")
           .update({
             quantity_available: buyQuantity,
-            resale_price: buyPrice,
+            reseller_price: buyPrice, // ✅ FIX: Use reseller_price (not resale_price)
             updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id);
@@ -197,10 +252,11 @@ export default function ResellerDevelopers() {
           .insert({
             reseller_id: resellerId,
             product_id: buyProduct.id,
+            product_name: buyProduct.name,
             quantity_available: buyQuantity,
             quantity_sold: 0,
-            base_price: buyProduct.base_price,
-            resale_price: buyPrice, // ✅ FIX: Always set this!
+            reseller_price: buyPrice, // ✅ FIX: Use reseller_price (not resale_price)
+            description: buyProduct.description || "",
             status: "active",
           });
 
@@ -217,9 +273,9 @@ export default function ResellerDevelopers() {
           <div className="text-left space-y-2">
             <p><strong>{buyProduct.name}</strong></p>
             <p>Menge: <strong>{buyQuantity}</strong></p>
-            <p>Preis pro Key: <strong>€{buyPrice.toFixed(2)}</strong></p>
+            <p>Preis pro Key: <strong>€{(buyPrice || 0).toFixed(2)}</strong></p>
             <p className="text-green-400 font-bold">
-              Gewinn pro Key: €{(buyPrice - buyProduct.base_price).toFixed(2)}
+              Gewinn pro Key: €{((buyPrice || 0) - (buyProduct.base_price || 0)).toFixed(2)}
             </p>
           </div>
         ),
@@ -340,7 +396,7 @@ export default function ResellerDevelopers() {
                         const resaleLine = resaleLines.find(
                           (r) => r.product_id === product.id
                         );
-                        const profitPerUnit = product.reseller_price - product.base_price;
+                        const profitPerUnit = (product.reseller_price || 0) - (product.base_price || 0);
 
                         return (
                           <div
@@ -356,19 +412,19 @@ export default function ResellerDevelopers() {
                                   <div>
                                     <p className="text-xs text-gray-400 mb-1">Base Preis</p>
                                     <p className="text-lg font-bold text-blue-400">
-                                      €{product.base_price.toFixed(2)}
+                                      €{(product.base_price || 0).toFixed(2)}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-400 mb-1">Dein Preis</p>
                                     <p className="text-lg font-bold text-[#00FF9C]">
-                                      €{product.reseller_price.toFixed(2)}
+                                      €{(product.reseller_price || 0).toFixed(2)}
                                     </p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-gray-400 mb-1">Gewinn/Unit</p>
                                     <p className="text-lg font-bold text-green-400">
-                                      €{profitPerUnit.toFixed(2)}
+                                      €{(profitPerUnit || 0).toFixed(2)}
                                     </p>
                                   </div>
                                 </div>
@@ -454,7 +510,7 @@ export default function ResellerDevelopers() {
               <div>
                 <label className="block text-gray-400 mb-2">Basis Preis:</label>
                 <p className="text-lg font-bold text-blue-400">
-                  €{buyProduct.base_price.toFixed(2)}
+                  €{(buyProduct.base_price || 0).toFixed(2)}
                 </p>
               </div>
 
@@ -463,13 +519,13 @@ export default function ResellerDevelopers() {
                 <input
                   type="number"
                   step="0.01"
-                  min={buyProduct.base_price}
+                  min={buyProduct.base_price || 0}
                   value={buyPrice}
                   onChange={(e) => setBuyPrice(parseFloat(e.target.value) || 0)}
                   className="w-full p-2 rounded bg-[#2C2C34] border border-[#3C3C44] focus:border-[#00FF9C] outline-none text-lg font-bold text-[#00FF9C]"
                 />
                 <p className="text-xs text-green-400 mt-1">
-                  Gewinn: €{(buyPrice - buyProduct.base_price).toFixed(2)} pro Key
+                  Gewinn: €{(buyPrice - (buyProduct.base_price || 0)).toFixed(2)} pro Key
                 </p>
               </div>
 
@@ -488,19 +544,19 @@ export default function ResellerDevelopers() {
                 <div className="flex justify-between mb-2">
                   <p className="text-gray-400">Gesamt investieren:</p>
                   <p className="font-bold text-blue-400">
-                    €{(buyProduct.base_price * buyQuantity).toFixed(2)}
+                    €{((buyProduct.base_price || 0) * buyQuantity).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex justify-between border-t border-[#3C3C44] pt-2">
                   <p className="text-gray-400">Verkaufswert:</p>
                   <p className="font-bold text-[#00FF9C]">
-                    €{(buyPrice * buyQuantity).toFixed(2)}
+                    €{((buyPrice || 0) * buyQuantity).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex justify-between border-t border-[#3C3C44] pt-2">
                   <p className="text-gray-400">Potentieller Gewinn:</p>
                   <p className="font-bold text-green-400">
-                    €{((buyPrice - buyProduct.base_price) * buyQuantity).toFixed(2)}
+                    €{(((buyPrice || 0) - (buyProduct.base_price || 0)) * buyQuantity).toFixed(2)}
                   </p>
                 </div>
               </div>
