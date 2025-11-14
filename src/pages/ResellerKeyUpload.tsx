@@ -26,6 +26,7 @@ export default function ResellerKeyUpload() {
   const { Dialog: DialogComponent, open: openDialog } = useDialog();
 
   const [resellerId, setResellerId] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number>(9.99);
@@ -35,17 +36,29 @@ export default function ResellerKeyUpload() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error || !data.user) {
         navigate("/reseller-login", { replace: true });
         return;
       }
 
-      // Get reseller ID
+      // Check if user is reseller and get organization_id from user_metadata
+      const isReseller = (data.user?.user_metadata as any)?.is_reseller;
+      const orgId = (data.user?.user_metadata as any)?.organization_id;
+
+      if (!isReseller || !orgId) {
+        navigate("/reseller-login", { replace: true });
+        return;
+      }
+
+      setOrganizationId(orgId);
+
+      // Get reseller ID using organization_id
       const { data: resellerData } = await supabase
         .from("resellers")
         .select("id")
-        .eq("user_email", data.user.email!)
+        .eq("organization_id", orgId)
         .single();
 
       if (!resellerData) {
