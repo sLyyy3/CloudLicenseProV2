@@ -78,10 +78,7 @@ export async function validateLicenseUniversal(
         current_activations,
         organization_id,
         product_id,
-        customer_id,
-        product_name,
-        customer_name,
-        customer_email
+        customer_id
       `;
 
       // Try with original key

@@ -1,10 +1,12 @@
 // src/pages/KeyValidator.tsx - UNIVERSAL KEY VALIDATOR
 // Validates keys from ALL sources (licenses + customer_keys)
 import { useState } from "react";
-import { FaKey, FaSearch, FaCheck, FaTimes, FaInfoCircle, FaCheckCircle } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { FaKey, FaSearch, FaCheck, FaTimes, FaInfoCircle, FaCheckCircle, FaArrowLeft } from "react-icons/fa";
 import { validateLicenseUniversal, ValidationResult } from "../lib/universalLicenseValidator";
 
 export default function KeyValidator() {
+  const navigate = useNavigate();
   const [searchKey, setSearchKey] = useState("");
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,6 +53,12 @@ export default function KeyValidator() {
       {/* HEADER */}
       <div className="bg-gradient-to-r from-[#1A1A1F] to-[#2C2C34] border-b border-[#3C3C44] shadow-xl p-6">
         <div className="max-w-3xl mx-auto">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-gray-400 hover:text-[#00FF9C] transition mb-4 text-sm font-semibold"
+          >
+            <FaArrowLeft /> Zurück zur Startseite
+          </button>
           <div className="flex items-center gap-4 mb-2">
             <div className="bg-[#00FF9C]/20 p-4 rounded-xl">
               <FaKey className="text-[#00FF9C] text-3xl" />

@@ -219,6 +219,14 @@ export default function ReferralProgram() {
         <Sidebar />
 
         <main className="ml-64 flex-1 p-8 text-[#E0E0E0]">
+          {/* BACK BUTTON */}
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-gray-400 hover:text-[#00FF9C] transition mb-6 text-sm font-semibold"
+          >
+            <FaArrowLeft /> Zurück zur Startseite
+          </button>
+
           {/* ANIMATED HEADER */}
           <div className="relative mb-8 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-blue-600/20 border-2 border-purple-500/50 rounded-3xl p-8 overflow-hidden shadow-2xl shadow-purple-500/20">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 animate-pulse"></div>
@@ -311,12 +319,14 @@ export default function ReferralProgram() {
           </div>
 
           {/* REFERRAL LINK SECTION - ULTRA MODERN */}
-          <div className="relative mb-8 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 border-2 border-blue-500/50 rounded-3xl p-8 overflow-hidden shadow-2xl">
+          <div className="relative mb-8 bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-pink-600/10 border-2 border-blue-500/50 rounded-3xl p-8 overflow-hidden shadow-2xl hover:shadow-blue-500/30 transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 animate-pulse"></div>
+            {/* Animated background orb */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
 
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
-                <div className="bg-gradient-to-br from-blue-500 to-purple-500 p-3 rounded-xl">
+                <div className="bg-gradient-to-br from-blue-500 to-purple-500 p-3 rounded-xl shadow-lg hover:scale-110 transition-transform duration-300">
                   <FaLink className="text-white text-2xl" />
                 </div>
                 <h2 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
@@ -324,22 +334,24 @@ export default function ReferralProgram() {
                 </h2>
               </div>
 
-              <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-blue-500/30">
+              <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300">
                 <div className="flex items-center justify-between gap-4 mb-4">
-                  <code className="font-mono text-sm md:text-base break-all flex-1 text-blue-300 font-bold">
-                    {referralLink}
-                  </code>
+                  <div className="flex-1 bg-[#0F0F14] rounded-xl p-4 border border-blue-500/20">
+                    <code className="font-mono text-sm md:text-base break-all text-blue-300 font-bold">
+                      {referralLink}
+                    </code>
+                  </div>
                   <button
                     onClick={copyReferralLink}
-                    className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                    className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 whitespace-nowrap transform hover:scale-105 ${
                       copied
-                        ? "bg-green-500 text-white shadow-lg shadow-green-500/50"
+                        ? "bg-green-500 text-white shadow-lg shadow-green-500/50 animate-pulse"
                         : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-blue-500/50"
                     }`}
                   >
                     {copied ? (
                       <>
-                        <FaCheck /> Kopiert!
+                        <FaCheck className="animate-bounce" /> Kopiert!
                       </>
                     ) : (
                       <>
@@ -352,21 +364,21 @@ export default function ReferralProgram() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <button
                     onClick={copyReferralLink}
-                    className="px-5 py-4 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 rounded-xl font-bold transition-all hover:scale-105 shadow-lg flex items-center justify-center gap-2"
+                    className="px-5 py-4 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 rounded-xl font-bold transition-all hover:scale-105 shadow-lg hover:shadow-gray-500/50 flex items-center justify-center gap-2 border border-gray-600/30 hover:border-gray-500/50"
                   >
-                    <FaCopy /> Link Kopieren
+                    <FaCopy className="text-lg" /> Link Kopieren
                   </button>
                   <button
                     onClick={shareOnTwitter}
-                    className="px-5 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl font-bold transition-all hover:scale-105 shadow-lg hover:shadow-blue-500/50 flex items-center justify-center gap-2"
+                    className="px-5 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl font-bold transition-all hover:scale-105 shadow-lg hover:shadow-blue-500/50 flex items-center justify-center gap-2 border border-blue-400/30 hover:border-blue-400/50"
                   >
-                    𝕏 Twitter
+                    <span className="text-lg">𝕏</span> Auf Twitter teilen
                   </button>
                   <button
                     onClick={shareOnDiscord}
-                    className="px-5 py-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 rounded-xl font-bold transition-all hover:scale-105 shadow-lg hover:shadow-purple-500/50 flex items-center justify-center gap-2"
+                    className="px-5 py-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 rounded-xl font-bold transition-all hover:scale-105 shadow-lg hover:shadow-purple-500/50 flex items-center justify-center gap-2 border border-purple-400/30 hover:border-purple-400/50"
                   >
-                    💬 Discord
+                    <span className="text-lg">💬</span> Auf Discord teilen
                   </button>
                 </div>
               </div>

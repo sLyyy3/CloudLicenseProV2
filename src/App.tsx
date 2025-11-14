@@ -213,7 +213,8 @@ export default function App() {
 
         {/* ===== PUBLIC PAGES ===== */}
         <Route path="/shop" element={<CustomerShop />} />
-        <Route path="/validate-key" element={<KeyValidator />} />
+        <Route path="/key-validator" element={<KeyValidator />} />
+        <Route path="/validate-key" element={<KeyValidator />} /> {/* Alias for compatibility */}
         <Route path="/bundles" element={<KeyBundles />} />
         <Route path="/reviews" element={<CustomerReviews />} />
         <Route path="/portal" element={<CustomerPortal />} />
