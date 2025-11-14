@@ -17,6 +17,16 @@ ADD COLUMN IF NOT EXISTS keys_pool TEXT DEFAULT '[]';
 
 -- Add comment for documentation
 COMMENT ON COLUMN reseller_products.keys_pool IS 'JSON array of license keys uploaded by reseller. Keys are distributed FIFO (First In First Out) on customer purchases.';
+
+-- Note: description column is NOT required - we removed it from the app
+-- The reseller_products table only needs:
+-- - reseller_id
+-- - product_name
+-- - reseller_price
+-- - quantity_available
+-- - quantity_sold
+-- - status
+-- - keys_pool (added above)
 ```
 
 ## 🎯 Was macht diese Migration?
