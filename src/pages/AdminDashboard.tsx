@@ -185,13 +185,16 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<
     "overview" | "customers" | "developers" | "resellers" | "licenses" | "transactions" | "analytics" | "health" | "referrals"
   >("overview");
-  const [godMode, setGodMode] = useState(false);
+  const [godMode] = useState(true); // Always enabled for simplicity
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   // REFERRAL MANAGEMENT STATE
   const [referralUsers, setReferralUsers] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
   const [totalReferralEarnings, setTotalReferralEarnings] = useState(0);
+  const [editingReferralCount, setEditingReferralCount] = useState<string | null>(null);
+  const [editingCommission, setEditingCommission] = useState<string | null>(null);
+  const [tempValues, setTempValues] = useState<{[key: string]: any}>({});
 
   useEffect(() => {
     async function init() {
@@ -491,6 +494,161 @@ export default function AdminDashboard() {
     });
   }
 
+  // ===== REFERRAL MANAGEMENT FUNCTIONS =====
+
+  async function updateReferralCount(userId: string, newCount: number) {
+    try {
+      const { error } = await supabase
+        .from("referral_users")
+        .update({ referral_count: newCount })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      openDialog({
+        type: "success",
+        title: "✅ Erfolgreich aktualisiert",
+        message: `Referral Count wurde auf ${newCount} gesetzt!`,
+        closeButton: "OK",
+      });
+
+      setEditingReferralCount(null);
+      loadAdminData();
+    } catch (err: any) {
+      openDialog({
+        type: "error",
+        title: "❌ Fehler",
+        message: err.message,
+        closeButton: "OK",
+      });
+    }
+  }
+
+  async function updateReferralCommission(referralId: string, newCommission: number) {
+    try {
+      const { error } = await supabase
+        .from("referrals")
+        .update({ commission: newCommission })
+        .eq("id", referralId);
+
+      if (error) throw error;
+
+      openDialog({
+        type: "success",
+        title: "✅ Commission aktualisiert",
+        message: `Commission wurde auf €${newCommission.toFixed(2)} gesetzt!`,
+        closeButton: "OK",
+      });
+
+      setEditingCommission(null);
+      loadAdminData();
+    } catch (err: any) {
+      openDialog({
+        type: "error",
+        title: "❌ Fehler",
+        message: err.message,
+        closeButton: "OK",
+      });
+    }
+  }
+
+  async function toggleReferralUserStatus(userId: string, currentStatus: string) {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+    try {
+      const { error } = await supabase
+        .from("referral_users")
+        .update({ status: newStatus })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      openDialog({
+        type: "success",
+        title: "✅ Status geändert",
+        message: `Status wurde auf "${newStatus}" gesetzt!`,
+        closeButton: "OK",
+      });
+
+      loadAdminData();
+    } catch (err: any) {
+      openDialog({
+        type: "error",
+        title: "❌ Fehler",
+        message: err.message,
+        closeButton: "OK",
+      });
+    }
+  }
+
+  async function deleteReferralUser(userId: string, email: string) {
+    openDialog({
+      type: "warning",
+      title: "⚠️ Referral User löschen?",
+      message: `Möchtest du wirklich den Referral User "${email}" löschen? Alle zugehörigen Referrals bleiben erhalten.`,
+      closeButton: "Abbrechen",
+      confirmButton: "Löschen",
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase
+            .from("referral_users")
+            .delete()
+            .eq("id", userId);
+
+          if (error) throw error;
+
+          openDialog({
+            type: "success",
+            title: "✅ Gelöscht",
+            message: "Referral User wurde gelöscht!",
+            closeButton: "OK",
+          });
+
+          loadAdminData();
+        } catch (err: any) {
+          openDialog({
+            type: "error",
+            title: "❌ Fehler",
+            message: err.message,
+            closeButton: "OK",
+          });
+        }
+      }
+    });
+  }
+
+  async function distributeCommission(userEmail: string, amountPerReferral: number) {
+    const userReferrals = referrals.filter(r => r.referrer_email === userEmail);
+
+    try {
+      for (const ref of userReferrals) {
+        await supabase
+          .from("referrals")
+          .update({
+            commission: (ref.commission || 0) + amountPerReferral,
+            status: 'active'
+          })
+          .eq("id", ref.id);
+      }
+
+      openDialog({
+        type: "success",
+        title: "✅ Commission verteilt",
+        message: `€${amountPerReferral.toFixed(2)} wurde an ${userReferrals.length} Referrals verteilt!`,
+        closeButton: "OK",
+      });
+
+      loadAdminData();
+    } catch (err: any) {
+      openDialog({
+        type: "error",
+        title: "❌ Fehler",
+        message: err.message,
+        closeButton: "OK",
+      });
+    }
+  }
+
   // ===== LICENSE MANAGEMENT FUNCTIONS =====
 
   function toggleLicenseSelection(licenseId: string) {
@@ -773,16 +931,6 @@ export default function AdminDashboard() {
                   className="px-3 py-2 bg-[#2C2C34] hover:bg-[#3C3C44] rounded-xl text-sm font-bold flex items-center gap-2 transition-all transform hover:scale-105"
                 >
                   <FaSync /> Refresh
-                </button>
-                <button
-                  onClick={() => setGodMode(!godMode)}
-                  className={`px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all transform hover:scale-105 ${
-                    godMode
-                      ? "bg-gradient-to-r from-red-600 to-red-700 shadow-lg shadow-red-600/50"
-                      : "bg-gradient-to-r from-blue-600 to-blue-700 shadow-lg shadow-blue-600/50"
-                  }`}
-                >
-                  <FaShieldAlt /> {godMode ? "GOD ON" : "GOD OFF"}
                 </button>
                 <button
                   onClick={handleLogout}
@@ -2030,9 +2178,46 @@ export default function AdminDashboard() {
                               </div>
                             </td>
                             <td className="p-3 text-center">
-                              <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full font-bold text-sm">
-                                {user.referral_count || 0}
-                              </span>
+                              {editingReferralCount === user.id ? (
+                                <div className="flex items-center gap-2 justify-center">
+                                  <input
+                                    type="number"
+                                    defaultValue={user.referral_count || 0}
+                                    onChange={(e) => setTempValues({...tempValues, [user.id]: parseInt(e.target.value)})}
+                                    className="w-16 px-2 py-1 bg-[#0E0E12] border border-blue-500 rounded text-center text-sm"
+                                  />
+                                  <button
+                                    onClick={() => updateReferralCount(user.id, tempValues[user.id] || user.referral_count || 0)}
+                                    className="p-1 bg-green-600/40 hover:bg-green-600/60 rounded"
+                                    title="Speichern"
+                                  >
+                                    <FaCheckCircle className="text-green-400 text-xs" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingReferralCount(null)}
+                                    className="p-1 bg-red-600/40 hover:bg-red-600/60 rounded"
+                                    title="Abbrechen"
+                                  >
+                                    <FaBan className="text-red-400 text-xs" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 justify-center">
+                                  <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full font-bold text-sm">
+                                    {user.referral_count || 0}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingReferralCount(user.id);
+                                      setTempValues({...tempValues, [user.id]: user.referral_count || 0});
+                                    }}
+                                    className="p-1 bg-blue-600/20 hover:bg-blue-600/40 rounded"
+                                    title="Bearbeiten"
+                                  >
+                                    <FaEdit className="text-blue-400 text-xs" />
+                                  </button>
+                                </div>
+                              )}
                             </td>
                             <td className="p-3 text-center">
                               <span className="text-green-400 font-bold">
@@ -2052,7 +2237,7 @@ export default function AdminDashboard() {
                               {new Date(user.created_at).toLocaleDateString("de-DE")}
                             </td>
                             <td className="p-3">
-                              <div className="flex gap-2 justify-center">
+                              <div className="flex gap-1 justify-center flex-wrap">
                                 <button
                                   onClick={() => {
                                     const userRefs = referrals.filter(r => r.referrer_email === user.email);
@@ -2079,7 +2264,61 @@ export default function AdminDashboard() {
                                   className="p-2 bg-blue-600/20 hover:bg-blue-600/40 rounded transition"
                                   title="Details anzeigen"
                                 >
-                                  <FaEye className="text-blue-400" />
+                                  <FaEye className="text-blue-400 text-sm" />
+                                </button>
+
+                                <button
+                                  onClick={() => toggleReferralUserStatus(user.id, user.status || 'active')}
+                                  className={`p-2 rounded transition ${
+                                    user.status === 'active'
+                                      ? 'bg-green-600/20 hover:bg-green-600/40'
+                                      : 'bg-gray-600/20 hover:bg-gray-600/40'
+                                  }`}
+                                  title={`Status: ${user.status || 'active'} (klicken zum ändern)`}
+                                >
+                                  <FaCheckCircle className={user.status === 'active' ? 'text-green-400 text-sm' : 'text-gray-400 text-sm'} />
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    openDialog({
+                                      type: "info",
+                                      title: "💰 Commission verteilen",
+                                      message: (
+                                        <div className="text-left space-y-3">
+                                          <p>Wie viel Commission möchtest du an ALLE Referrals von {user.email} verteilen?</p>
+                                          <input
+                                            id="commission-input"
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="z.B. 5.00"
+                                            className="w-full px-3 py-2 bg-[#0E0E12] border border-green-500 rounded"
+                                          />
+                                        </div>
+                                      ),
+                                      closeButton: "Abbrechen",
+                                      confirmButton: "Verteilen",
+                                      onConfirm: () => {
+                                        const input = document.getElementById('commission-input') as HTMLInputElement;
+                                        const amount = parseFloat(input?.value || '0');
+                                        if (amount > 0) {
+                                          distributeCommission(user.email, amount);
+                                        }
+                                      }
+                                    });
+                                  }}
+                                  className="p-2 bg-yellow-600/20 hover:bg-yellow-600/40 rounded transition"
+                                  title="Commission verteilen"
+                                >
+                                  <FaDollarSign className="text-yellow-400 text-sm" />
+                                </button>
+
+                                <button
+                                  onClick={() => deleteReferralUser(user.id, user.email)}
+                                  className="p-2 bg-red-600/20 hover:bg-red-600/40 rounded transition"
+                                  title="Löschen"
+                                >
+                                  <FaTrash className="text-red-400 text-sm" />
                                 </button>
                               </div>
                             </td>
