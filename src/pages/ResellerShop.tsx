@@ -7,13 +7,14 @@ import { useDialog } from "../components/Dialog";
 
 type ResellerProduct = {
   id: string;
-  product_id: string;
+  reseller_id: string;
   product_name: string;
+  description?: string;
   reseller_price: number;
   quantity_available: number;
   quantity_sold: number;
-  description: string;
   status?: string;
+  keys_pool?: string;
 };
 
 type Reseller = {
@@ -211,14 +212,12 @@ export default function ResellerShop() {
       try {
         await supabase.from("reseller_sales").insert({
           reseller_id: resellerId,
-          product_id: product.product_id,
           product_name: product.product_name,
           customer_name: user.email?.split("@")[0] || "Customer",
           customer_email: user.email,
           quantity,
           unit_price: product.reseller_price,
           total_price: totalPrice,
-          // Note: profit calculation removed as base_price is no longer stored
         });
       } catch (salesError) {
         console.log("reseller_sales tracking skipped (table not available)");
@@ -267,7 +266,7 @@ export default function ResellerShop() {
               <strong>Preis:</strong> €{totalPrice.toFixed(2)}
             </p>
             <p className="text-sm text-gray-400 mt-3">
-              💡 Deine Keys findest du in <button onClick={() => navigate("/dashboard")} className="underline font-bold">Mein Dashboard</button>
+              💡 Deine Keys findest du in <button onClick={() => navigate("/customer-dashboard")} className="underline font-bold hover:text-[#00FF9C]">Mein Dashboard</button>
             </p>
           </div>
         ),
