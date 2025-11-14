@@ -35,6 +35,7 @@ import DeveloperResellers from "./pages/DeveloperResellers";
 import DeveloperAPIKeys from "./pages/DeveloperAPIKeys";
 import DeveloperBilling from "./pages/DeveloperBilling";
 import DeveloperDocs from "./pages/DeveloperDocs";
+import DeveloperKeyGenerator from "./pages/DeveloperKeyGenerator";
 
 // ===== RESELLER PAGES =====
 import ResellerDashboard from "./pages/ResellerDashboard";
@@ -43,6 +44,7 @@ import ResellerInventory from "./pages/ResellerInventory";
 import ResellerDevelopers from "./pages/ResellerDevelopers";
 import ResellerAnalytics from "./pages/ResellerAnalytics";
 import ResellerSales from "./pages/ResellerSales";
+import ResellerKeyUpload from "./pages/ResellerKeyUpload";
 
 // ===== ADMIN PAGES =====
 import AdminDashboard from "./pages/AdminDashboard";
@@ -295,6 +297,14 @@ export default function App() {
           }
         />
         <Route
+          path="/dev-key-generator"
+          element={
+            <ProtectedRoute>
+              <DeveloperKeyGenerator />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/dev-api-keys"
           element={
             <ProtectedRoute>
@@ -332,19 +342,28 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* REMOVED: Reseller Marketplace - Resellers now upload keys externally */}
+        {/* <Route
           path="/reseller-marketplace"
           element={
             <ProtectedRoute>
               <ResellerMarketplace />
             </ProtectedRoute>
           }
-        />
+        /> */}
         <Route
           path="/reseller-inventory"
           element={
             <ProtectedRoute>
               <ResellerInventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reseller-key-upload"
+          element={
+            <ProtectedRoute>
+              <ResellerKeyUpload />
             </ProtectedRoute>
           }
         />

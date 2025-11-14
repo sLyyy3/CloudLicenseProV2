@@ -277,10 +277,10 @@ export default function ResellerInventory() {
                 />
               </div>
               <button
-                onClick={() => navigate("/reseller-marketplace")}
+                onClick={() => navigate("/reseller-key-upload")}
                 className="px-6 py-3 bg-[#00FF9C] text-[#0E0E12] rounded-lg font-bold hover:bg-[#00cc80] transition flex items-center gap-2 shadow-lg shadow-[#00FF9C]/20"
               >
-                <FaPlus /> Produkt kaufen
+                <FaPlus /> Keys hochladen
               </button>
             </div>
 
@@ -289,12 +289,12 @@ export default function ResellerInventory() {
               <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-12 text-center">
                 <FaBox className="text-5xl mb-4 mx-auto opacity-30 text-gray-400" />
                 <p className="text-lg font-semibold mb-2">Kein Lager vorhanden</p>
-                <p className="text-gray-400 mb-6">Kaufe Produkte vom Marketplace um sie hier zu verkaufen</p>
+                <p className="text-gray-400 mb-6">Lade Keys hoch die du von Developern erhalten hast</p>
                 <button
-                  onClick={() => navigate("/reseller-marketplace")}
+                  onClick={() => navigate("/reseller-key-upload")}
                   className="px-6 py-2 bg-[#00FF9C] text-[#0E0E12] rounded font-bold hover:bg-[#00cc80]"
                 >
-                  Zum Marketplace →
+                  Keys hochladen →
                 </button>
               </div>
             ) : (

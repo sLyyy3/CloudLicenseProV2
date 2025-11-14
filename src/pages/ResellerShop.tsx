@@ -148,10 +148,31 @@ export default function ResellerShop() {
     try {
       console.log("🛒 Kauf starten:", product.product_name, "x", quantity);
 
-      // Generate Keys for customer
-      const keys = Array.from({ length: quantity }, () =>
-        `KEY-${Math.random().toString(36).substring(2, 10).toUpperCase()}-${Date.now()}`
-      );
+      // Get keys from inventory pool
+      const { data: productData } = await supabase
+        .from("reseller_products")
+        .select("keys_pool")
+        .eq("id", product.id)
+        .single();
+
+      if (!productData || !productData.keys_pool) {
+        throw new Error("Keine Keys im Inventar verfügbar");
+      }
+
+      let keysPool: string[] = [];
+      try {
+        keysPool = JSON.parse(productData.keys_pool);
+      } catch {
+        throw new Error("Fehler beim Lesen der Keys");
+      }
+
+      if (keysPool.length < quantity) {
+        throw new Error(`Nur ${keysPool.length} Keys verfügbar`);
+      }
+
+      // Take keys from pool (FIFO - First In First Out)
+      const keys = keysPool.slice(0, quantity);
+      const remainingKeys = keysPool.slice(quantity);
 
       const totalPrice = product.reseller_price * quantity;
 
@@ -203,11 +224,12 @@ export default function ResellerShop() {
         console.log("reseller_sales tracking skipped (table not available)");
       }
 
-      // Update reseller product inventory
+      // Update reseller product inventory (remove sold keys from pool)
       await supabase
         .from("reseller_products")
         .update({
-          quantity_available: product.quantity_available - quantity,
+          keys_pool: JSON.stringify(remainingKeys),
+          quantity_available: remainingKeys.length,
           quantity_sold: product.quantity_sold + quantity,
         })
         .eq("id", product.id);

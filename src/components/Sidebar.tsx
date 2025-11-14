@@ -73,6 +73,7 @@ export default function Sidebar() {
         { label: "Dashboard", path: "/developer-dashboard", icon: FaHome },
         { label: "Produkte", path: "/dev-products", icon: FaBox },
         { label: "Lizenzen", path: "/dev-licenses", icon: FaKey },
+        { label: "Key Generator", path: "/dev-key-generator", icon: FaRocket, badge: "NEU" },
       ],
     },
     {
@@ -96,7 +97,7 @@ export default function Sidebar() {
       category: "HAUPT",
       items: [
         { label: "Dashboard", path: "/reseller-dashboard", icon: FaHome },
-        { label: "Marktplatz", path: "/reseller-marketplace", icon: FaStore },
+        { label: "Keys hochladen", path: "/reseller-key-upload", icon: FaRocket, badge: "NEU" },
         { label: "Lager", path: "/reseller-inventory", icon: FaGem },
       ],
     },

@@ -251,18 +251,18 @@ export default function ResellerDashboard() {
                 </button>
               </div>
 
-              {/* Marketplace */}
+              {/* Keys hochladen */}
               <div
-                onClick={() => navigate("/reseller-marketplace")}
-                className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-green-600/30 rounded-lg p-8 hover:border-green-600/80 hover:shadow-lg hover:shadow-green-600/20 transition cursor-pointer"
+                onClick={() => navigate("/reseller-key-upload")}
+                className="bg-gradient-to-br from-[#1A1A1F] to-[#2C2C34] border border-purple-600/30 rounded-lg p-8 hover:border-purple-600/80 hover:shadow-lg hover:shadow-purple-600/20 transition cursor-pointer"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <FaChartBar className="text-4xl text-green-400" />
-                  <h3 className="text-2xl font-bold">Marketplace</h3>
+                  <FaRocket className="text-4xl text-purple-400" />
+                  <h3 className="text-2xl font-bold">Keys hochladen</h3>
                 </div>
-                <p className="text-gray-400 mb-6">Kaufe neue Produkte von Developern</p>
-                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded font-bold transition w-full">
-                  Zum Marketplace →
+                <p className="text-gray-400 mb-6">Lade neue Keys hoch die du erhalten hast</p>
+                <button className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded font-bold transition w-full">
+                  Keys hochladen →
                 </button>
               </div>
             </div>
@@ -276,10 +276,10 @@ export default function ResellerDashboard() {
                 <FaBox className="text-blue-400" /> Lager
               </button>
               <button
-                onClick={() => navigate("/reseller-marketplace")}
-                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-green-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
+                onClick={() => navigate("/reseller-key-upload")}
+                className="bg-[#1A1A1F] hover:bg-[#2C2C34] border border-[#2C2C34] hover:border-purple-500/50 rounded-lg p-4 transition flex items-center gap-2 text-sm font-bold"
               >
-                <FaRocket className="text-green-400" /> Marketplace
+                <FaRocket className="text-purple-400" /> Keys hochladen
               </button>
               <button
                 onClick={() => navigate("/reseller-sales")}
