@@ -77,6 +77,8 @@ export default function CustomerDashboard() {
 
   async function loadCustomerData(email: string) {
     try {
+      console.log(`🔍 Lade Daten für ${email}...`);
+
       // Load customer orders
       const { data: ordersData, error: ordersError } = await supabase
         .from("customer_orders")
@@ -84,8 +86,12 @@ export default function CustomerDashboard() {
         .eq("customer_email", email)
         .order("created_at", { ascending: false });
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.error("❌ Fehler beim Laden der Bestellungen:", ordersError);
+        throw ordersError;
+      }
 
+      console.log(`📦 ${ordersData?.length || 0} Bestellungen gefunden`);
       setOrders(ordersData || []);
 
       // Load customer keys
@@ -95,18 +101,30 @@ export default function CustomerDashboard() {
         .eq("customer_email", email)
         .order("created_at", { ascending: false });
 
-      if (keysError) throw keysError;
+      if (keysError) {
+        console.error("❌ Fehler beim Laden der Keys:", keysError);
+        throw keysError;
+      }
+
+      console.log(`🔑 ${keysData?.length || 0} Keys gefunden:`, keysData);
+
+      if (!keysData || keysData.length === 0) {
+        console.warn("⚠️ KEINE KEYS GEFUNDEN! Prüfe ob customer_keys Tabelle existiert und Keys gespeichert wurden!");
+      }
 
       // Enrich keys with product names from orders
       const enrichedKeys = keysData?.map((key) => {
         const order = ordersData?.find((o) => o.id === key.order_id);
         const productName = order?.items?.[0]?.product_name || "Produkt";
+        console.log(`  - Key ${key.key_code.substring(0, 10)}... → ${productName}`);
         return { ...key, product_name: productName };
       }) || [];
 
       setKeys(enrichedKeys);
+      console.log(`✅ Insgesamt ${enrichedKeys.length} Keys geladen und enriched`);
     } catch (err: any) {
-      console.error("Error loading data:", err);
+      console.error("❌ KRITISCHER FEHLER beim Laden der Daten:", err);
+      console.error("Details:", err.message, err.code, err.details);
     }
   }
 

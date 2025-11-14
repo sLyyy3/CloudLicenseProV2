@@ -186,7 +186,7 @@ export default function ResellerShop() {
           status: "completed",
           items: [
             {
-              product_id: product.product_id,
+              product_id: product.id,
               product_name: product.product_name,
               price: product.reseller_price,
               quantity,
@@ -199,14 +199,25 @@ export default function ResellerShop() {
       if (orderError) throw orderError;
 
       // Create customer keys
-      for (const key of keys) {
-        await supabase.from("customer_keys").insert({
-          customer_email: user.email,
-          key_code: key,
-          status: "active",
-          order_id: orderData.id,
-        });
+      console.log(`💾 Speichere ${keys.length} Keys für ${user.email}...`);
+      const keyInserts = keys.map((key) => ({
+        customer_email: user.email,
+        key_code: key,
+        status: "active",
+        order_id: orderData.id,
+      }));
+
+      const { data: insertedKeys, error: keysError } = await supabase
+        .from("customer_keys")
+        .insert(keyInserts)
+        .select();
+
+      if (keysError) {
+        console.error("❌ Fehler beim Speichern der Keys:", keysError);
+        throw new Error(`Keys konnten nicht gespeichert werden: ${keysError.message}`);
       }
+
+      console.log(`✅ ${insertedKeys?.length || 0} Keys erfolgreich gespeichert!`);
 
       // Record reseller sale (optional - table might not exist yet)
       try {
