@@ -1,5 +1,5 @@
 // src/pages/Home.tsx - MEGA LANDING PAGE WITH FIXED BUBBLES
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import {
@@ -22,6 +22,23 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
+
+// Bubble Component - Memoized to prevent re-renders!
+const FloatingBubble = memo(({ bubble }: { bubble: any }) => (
+  <div
+    className="bubble absolute rounded-full opacity-10"
+    style={{
+      left: `${bubble.left}%`,
+      width: `${bubble.size}px`,
+      height: `${bubble.size}px`,
+      background: `radial-gradient(circle, ${bubble.color}, transparent)`,
+      animationDelay: `${bubble.delay}s`,
+      animationDuration: `${bubble.duration}s`,
+      bottom: `-${bubble.bottom}px`,
+      ['--move-x' as any]: `${bubble.moveX}px`,
+    }}
+  />
+));
 
 // Animated Counter Hook
 function useAnimatedCounter(targetValue: number, duration: number = 2000) {
@@ -189,20 +206,7 @@ export default function Home() {
       {/* FLOATING BUBBLES - CSS ONLY (No re-render!) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {bubbles.map((bubble) => (
-          <div
-            key={bubble.id}
-            className="bubble absolute rounded-full opacity-10"
-            style={{
-              left: `${bubble.left}%`,
-              width: `${bubble.size}px`,
-              height: `${bubble.size}px`,
-              background: `radial-gradient(circle, ${bubble.color}, transparent)`,
-              animationDelay: `${bubble.delay}s`,
-              animationDuration: `${bubble.duration}s`,
-              bottom: `-${bubble.bottom}px`,
-              ['--move-x' as any]: `${bubble.moveX}px`, // CSS Variable for horizontal movement
-            }}
-          />
+          <FloatingBubble key={bubble.id} bubble={bubble} />
         ))}
       </div>
 
