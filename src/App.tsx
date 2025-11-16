@@ -1,4 +1,4 @@
-// src/App.tsx - COMPLETE REWRITE WITH CORRECT RESELLER ROUTES
+// src/App.tsx - USING DEVELOPER COMPONENTS FOR RESELLER ROUTES (CORRECT!)
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -13,8 +13,8 @@ import Home from "./pages/Home";
 // ===== AUTH PAGES =====
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import ResellerRegister from "./pages/ResellerRegister";
-import ResellerLogin from "./pages/ResellerLogin";
+import DeveloperRegister from "./pages/DeveloperRegister";
+import DeveloperLogin from "./pages/DeveloperLogin";
 
 // ===== PUBLIC PAGES =====
 import CustomerShop from "./pages/CustomerShop";
@@ -23,14 +23,15 @@ import KeyValidator from "./pages/KeyValidator";
 // ===== LICENSE LOGIN =====
 import LicenseLogin from "./pages/LicenseLogin";
 
-// ===== RESELLER PAGES =====
-import ResellerDashboard from "./pages/ResellerDashboard";
-import ResellerMarketplace from "./pages/ResellerMarketplace";
-import ResellerInventory from "./pages/ResellerInventory";
-import ResellerDevelopers from "./pages/Resellerdevelopers";
-import ResellerAnalytics from "./pages/ResellerAnalytics";
-import ResellerSales from "./pages/ResellerSales";
+// ===== DEVELOPER/RESELLER PAGES (Developer components ARE the Reseller pages!) =====
+import DeveloperDashboard from "./pages/DeveloperDashboard";
+import DeveloperProducts from "./pages/DeveloperProducts";
+import DeveloperLicenses from "./pages/DeveloperLicenses";
+import DeveloperCustomers from "./pages/DeveloperCustomers";
+import DeveloperAnalytics from "./pages/DeveloperAnalytics";
+import DeveloperAPIKeys from "./pages/DeveloperAPIKeys";
 import DeveloperBilling from "./pages/DeveloperBilling";
+import DeveloperDocs from "./pages/DeveloperDocs";
 
 // ===== ADMIN PAGES =====
 import AdminDashboard from "./pages/AdminDashboard";
@@ -215,16 +216,16 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* ===== RESELLER AUTH ROUTES ===== */}
-        <Route path="/reseller-register" element={<ResellerRegister />} />
-        <Route path="/reseller-login" element={<ResellerLogin />} />
+        {/* ===== RESELLER AUTH ROUTES (Using Developer Components!) ===== */}
+        <Route path="/reseller-register" element={<DeveloperRegister />} />
+        <Route path="/reseller-login" element={<DeveloperLogin />} />
 
-        {/* ===== RESELLER PROTECTED ROUTES ===== */}
+        {/* ===== RESELLER PROTECTED ROUTES (Using Developer Components!) ===== */}
         <Route
           path="/reseller-dashboard"
           element={
             <ProtectedRoute>
-              <ResellerDashboard />
+              <DeveloperDashboard />
             </ProtectedRoute>
           }
         />
@@ -232,7 +233,7 @@ export default function App() {
           path="/reseller-products"
           element={
             <ProtectedRoute>
-              <ResellerMarketplace />
+              <DeveloperProducts />
             </ProtectedRoute>
           }
         />
@@ -240,7 +241,7 @@ export default function App() {
           path="/reseller-licenses"
           element={
             <ProtectedRoute>
-              <ResellerInventory />
+              <DeveloperLicenses />
             </ProtectedRoute>
           }
         />
@@ -248,7 +249,7 @@ export default function App() {
           path="/reseller-customers"
           element={
             <ProtectedRoute>
-              <ResellerDevelopers />
+              <DeveloperCustomers />
             </ProtectedRoute>
           }
         />
@@ -256,15 +257,15 @@ export default function App() {
           path="/reseller-analytics"
           element={
             <ProtectedRoute>
-              <ResellerAnalytics />
+              <DeveloperAnalytics />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/reseller-sales"
+          path="/reseller-api-keys"
           element={
             <ProtectedRoute>
-              <ResellerSales />
+              <DeveloperAPIKeys />
             </ProtectedRoute>
           }
         />
@@ -273,6 +274,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DeveloperBilling />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reseller-docs"
+          element={
+            <ProtectedRoute>
+              <DeveloperDocs />
             </ProtectedRoute>
           }
         />
