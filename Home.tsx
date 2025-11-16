@@ -274,26 +274,26 @@ export default function Home() {
         <div className="pt-32 pb-20 px-8">
           <div className="max-w-7xl mx-auto text-center">
             <div className="inline-block mb-4 px-4 py-2 bg-[#00FF9C]/10 border border-[#00FF9C]/30 rounded-full text-[#00FF9C] text-sm font-bold animate-pulse">
-              🔥 Die nächste Generation ist hier
+              🔥 Der Marketplace für Game Keys & Digital Products
             </div>
 
             <h1 className="text-7xl md:text-8xl font-black mb-6 bg-gradient-to-r from-[#00FF9C] via-purple-400 to-blue-400 bg-clip-text text-transparent leading-tight">
-              Lizenz-Management
+              Verkaufe Keys.
               <br />
-              neu definiert
+              Verdiene Geld.
             </h1>
 
             <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto mb-8">
-              Verkaufe digitale Produkte, verwalte Keys, verdiene Geld als Reseller -
-              <span className="text-[#00FF9C] font-bold"> alles an einem Ort</span>
+              Kaufe Keys auf ePVP, UnknownCheats & Co. - verkaufe sie auf CloudLicensePro.
+              <span className="text-[#00FF9C] font-bold"> Nur 5% Fee.</span>
             </p>
 
             <div className="flex gap-4 justify-center flex-wrap mb-12">
               <button
-                onClick={() => navigate("/signup")}
+                onClick={() => navigate("/dev-register")}
                 className="px-8 py-4 bg-[#00FF9C] text-[#0E0E12] rounded-lg font-bold text-lg hover:bg-[#00cc80] transition hover:scale-105 flex items-center gap-2 shadow-lg shadow-[#00FF9C]/20"
               >
-                Kostenlos starten <FaArrowRight />
+                Jetzt Seller werden <FaArrowRight />
               </button>
               <button
                 onClick={() => navigate("/shop")}
@@ -477,22 +477,25 @@ export default function Home() {
                   <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
                     💰 Als Seller
                   </h3>
+                  <p className="text-gray-400 mb-6 text-lg">
+                    Du kaufst Keys extern (ePVP, UnknownCheats, etc.) und verkaufst sie hier weiter.
+                  </p>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Unbegrenzt Keys generieren</span>
+                      <span>Unbegrenzt Produkte listen</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Reseller-Netzwerk aufbauen</span>
+                      <span>Eigene Preise festlegen</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>REST API für Integration</span>
+                      <span>Reseller können für dich verkaufen</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Verdienste in Echtzeit tracken</span>
+                      <span>Nur 5% Fee pro Verkauf</span>
                     </li>
                   </ul>
                   <button
@@ -509,22 +512,25 @@ export default function Home() {
                   <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
                     💼 Als Reseller
                   </h3>
+                  <p className="text-gray-400 mb-6 text-lg">
+                    Du kaufst Keys von Sellern günstiger und verkaufst sie mit deiner eigenen Marge weiter.
+                  </p>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Keys günstig einkaufen</span>
+                      <span>Von Sellern günstig einkaufen</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Eigene Preise festlegen</span>
+                      <span>Eigene Verkaufspreise bestimmen</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Inventory Management Tools</span>
+                      <span>Inventory Management Dashboard</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Gewinn verdoppeln und mehr!</span>
+                      <span>100% deiner Marge behalten</span>
                     </li>
                   </ul>
                   <button
@@ -635,23 +641,23 @@ export default function Home() {
                 <div className="text-4xl mb-4">💰</div>
                 <h3 className="text-2xl font-bold mb-2">Seller</h3>
                 <div className="text-4xl font-bold mb-4 text-[#00FF9C]">5% Fee</div>
-                <p className="text-gray-400 mb-6">Pro Verkauf - keine monatlichen Kosten</p>
+                <p className="text-gray-400 mb-6">Keys extern kaufen, hier verkaufen</p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Unbegrenzte Keys</span>
+                    <span className="text-sm">Unbegrenzt Produkte listen</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Reseller Network</span>
+                    <span className="text-sm">Reseller für dich verkaufen</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Full API Access</span>
+                    <span className="text-sm">Eigene Preise festlegen</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Analytics Dashboard</span>
+                    <span className="text-sm">Live Analytics Dashboard</span>
                   </li>
                 </ul>
                 <button
@@ -667,19 +673,19 @@ export default function Home() {
                 <div className="text-4xl mb-4">💼</div>
                 <h3 className="text-2xl font-bold mb-2">Reseller</h3>
                 <div className="text-4xl font-bold mb-4 text-[#00FF9C]">Kostenlos</div>
-                <p className="text-gray-400 mb-6">Verdiene an deiner Marge</p>
+                <p className="text-gray-400 mb-6">Von Sellern kaufen, mit Marge weiterverkaufen</p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Günstig Einkaufen</span>
+                    <span className="text-sm">Von Sellern günstig kaufen</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Eigene Preise</span>
+                    <span className="text-sm">100% Marge behalten</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Inventory Tools</span>
+                    <span className="text-sm">Inventory Management</span>
                   </li>
                 </ul>
                 <button
