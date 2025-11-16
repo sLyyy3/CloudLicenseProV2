@@ -32,23 +32,11 @@ export default function Sidebar() {
       category: "RESELLER",
       items: [
         { label: "Dashboard", path: "/reseller-dashboard", icon: FaHome },
-        { label: "Marktplatz", path: "/reseller-marketplace", icon: FaBox },
-        { label: "Lager", path: "/reseller-inventory", icon: FaGem },
-        { label: "Key Verteilung", path: "/reseller-sales", icon: FaKey, badge: "LIVE" },
-        { label: "Developer", path: "/reseller-developers", icon: FaUsers },
-        { label: "Analytics", path: "/reseller-analytics", icon: FaRocket },
-     // ↑ quote hinzugefügt
-      ],
-    },
-    {
-      category: "SYSTEM",
-      items: [
-        { label: "Dashboard", path: "/dashboard", icon: FaHome },
-        { label: "Lizenzen", path: "/licenses", icon: FaKey },
-        { label: "Kunden", path: "/customers", icon: FaUsers },
-        { label: "Produkte", path: "/products", icon: FaBox },
-        { label: "Aktivierungen", path: "/activations", icon: FaRocket },
-        { label: "Analytics", path: "/analytics", icon: FaCog },
+        { label: "Keys hochladen", path: "/reseller-products", icon: FaBox },
+        { label: "Inventar", path: "/reseller-licenses", icon: FaGem },
+        { label: "Verkäufe", path: "/reseller-analytics", icon: FaRocket, badge: "LIVE" },
+        { label: "Kunden", path: "/reseller-customers", icon: FaUsers },
+        { label: "Auszahlung", path: "/reseller-billing", icon: FaCog },
       ],
     },
   ];
@@ -120,14 +108,14 @@ export default function Sidebar() {
       {/* Bottom Section */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#1a1a24] bg-[#0F0F14]">
         {expanded && (
-          <div className="mb-4 p-3 rounded-lg bg-[#1a1a24] border border-[#00FF9C]/20">
+          <div className="mb-4 p-3 rounded-lg bg-gradient-to-br from-purple-600/10 to-pink-600/10 border border-purple-500/30">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00FF9C] to-[#00D9FF] flex items-center justify-center">
-                <FaUser className="text-[#0F0F14] text-xs font-bold" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <FaUser className="text-white text-xs font-bold" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-white truncate">Reseller</p>
-                <p className="text-xs text-[#00FF9C] truncate">Premium</p>
+                <p className="text-xs font-bold text-white truncate">Reseller Shop</p>
+                <p className="text-xs text-purple-400 truncate font-bold">5% Fee Only</p>
               </div>
             </div>
           </div>
