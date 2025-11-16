@@ -33,7 +33,7 @@ import {
   useAdvancedFilter,
   usePagination,
   exportToCSV,
-} from "../utils/helpers.tsx";
+} from "../lib/helpers.tsx";
 
 type License = {
   id: string;

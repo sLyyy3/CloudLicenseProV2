@@ -1,4 +1,4 @@
-// src/App.tsx - FIXED: Licenses Route zeigt jetzt Licenses statt Dashboard
+// src/App.tsx - USING DEVELOPER COMPONENTS FOR RESELLER ROUTES (CORRECT!)
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -15,8 +15,6 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import DeveloperRegister from "./pages/DeveloperRegister";
 import DeveloperLogin from "./pages/DeveloperLogin";
-import ResellerRegister from "./pages/ResellerRegister";
-import ResellerLogin from "./pages/ResellerLogin";
 
 // ===== PUBLIC PAGES =====
 import CustomerShop from "./pages/CustomerShop";
@@ -25,24 +23,15 @@ import KeyValidator from "./pages/KeyValidator";
 // ===== LICENSE LOGIN =====
 import LicenseLogin from "./pages/LicenseLogin";
 
-// ===== DEVELOPER PAGES =====
+// ===== DEVELOPER/RESELLER PAGES (Developer components ARE the Reseller pages!) =====
 import DeveloperDashboard from "./pages/DeveloperDashboard";
 import DeveloperProducts from "./pages/DeveloperProducts";
 import DeveloperLicenses from "./pages/DeveloperLicenses";
 import DeveloperCustomers from "./pages/DeveloperCustomers";
 import DeveloperAnalytics from "./pages/DeveloperAnalytics";
-import DeveloperResellers from "./pages/DeveloperResellers";
 import DeveloperAPIKeys from "./pages/DeveloperAPIKeys";
 import DeveloperBilling from "./pages/DeveloperBilling";
 import DeveloperDocs from "./pages/DeveloperDocs";
-
-// ===== RESELLER PAGES =====
-import ResellerDashboard from "./pages/ResellerDashboard";
-import ResellerMarketplace from "./pages/ResellerMarketplace";
-import ResellerInventory from "./pages/ResellerInventory";
-import ResellerDevelopers from "./pages/ResellerDevelopers";
-import ResellerAnalytics from "./pages/ResellerAnalytics";
-import ResellerSales from "./pages/ResellerSales";
 
 // ===== ADMIN PAGES =====
 import AdminDashboard from "./pages/AdminDashboard";
@@ -61,7 +50,7 @@ import Products from "./pages/Products";
 import Activations from "./pages/Activations";
 import CustomerPortal from "./pages/CustomerPortal";
 import CreateLicense from "./pages/CreateLicense";
-import Licenses from "./pages/Licenses"; // ✅ NEU: Licenses Import hinzugefügt!
+import Licenses from "./pages/Licenses";
 
 // ===== LICENSE AUTH STATE =====
 interface LicenseAuthState {
@@ -227,11 +216,11 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* ===== RESELLER AUTH ROUTES ===== */}
+        {/* ===== RESELLER AUTH ROUTES (Using Developer Components!) ===== */}
         <Route path="/reseller-register" element={<DeveloperRegister />} />
         <Route path="/reseller-login" element={<DeveloperLogin />} />
 
-        {/* ===== RESELLER PROTECTED ROUTES ===== */}
+        {/* ===== RESELLER PROTECTED ROUTES (Using Developer Components!) ===== */}
         <Route
           path="/reseller-dashboard"
           element={
@@ -297,8 +286,6 @@ export default function App() {
           }
         />
 
-        {/* ===== OLD RESELLER ROUTES REMOVED - Using Developer Components now ===== */}
-
         {/* ===== REFERRAL ROUTE (PUBLIC) ===== */}
         <Route
           path="/referral"
@@ -336,8 +323,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ✅ FIXED: /licenses Route jetzt mit Licenses Komponente statt Dashboard! */}
         <Route
           path="/licenses"
           element={
@@ -346,7 +331,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/customers"
           element={
