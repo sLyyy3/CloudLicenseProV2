@@ -1,9 +1,9 @@
 // src/pages/DeveloperRegister.tsx - RESELLER REGISTRATION
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 import { FaRocket, FaArrowLeft, FaStore, FaCoins, FaUserCircle, FaShieldAlt } from "react-icons/fa";
-import { useDialog } from "./Dialog";
+import { useDialog } from "../components/Dialog";
 
 export default function DeveloperRegister() {
   const navigate = useNavigate();

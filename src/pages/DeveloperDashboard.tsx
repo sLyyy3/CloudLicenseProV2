@@ -1,7 +1,7 @@
 // src/pages/DeveloperDashboard.tsx - RESELLER DASHBOARD (Massiv erweitert)
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 import {
   FaRocket,
   FaSignOutAlt,
@@ -28,8 +28,8 @@ import {
   FaStar,
   FaCalendarAlt,
 } from "react-icons/fa";
-import { useDialog } from "./Dialog";
-import Sidebar from "./Sidebar";
+import { useDialog } from "../components/Dialog";
+import Sidebar from "../components/Sidebar";
 
 type ResellerInfo = {
   id: string;

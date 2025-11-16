@@ -1,7 +1,7 @@
 // src/pages/Home.tsx - MEGA LANDING PAGE WITH FIXED BUBBLES
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 import {
   FaRocket,
   FaShoppingCart,

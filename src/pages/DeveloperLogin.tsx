@@ -1,9 +1,9 @@
 // src/pages/DeveloperLogin.tsx - RESELLER LOGIN
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 import { FaRocket, FaArrowLeft, FaStore, FaShieldAlt, FaChartLine } from "react-icons/fa";
-import { useDialog } from "./Dialog";
+import { useDialog } from "../components/Dialog";
 
 export default function DeveloperLogin() {
   const navigate = useNavigate();
