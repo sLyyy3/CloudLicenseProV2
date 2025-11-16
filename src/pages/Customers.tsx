@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { FaUsers, FaPlus, FaSearch, FaDownload, FaTrash } from "react-icons/fa";
 import Sidebar from "../components/Sidebar";
 import { useDialog } from "../components/Dialog";
-import { useAdvancedFilter, usePagination, exportToCSV } from "../utils/helpers.tsx";
+import { useAdvancedFilter, usePagination, exportToCSV } from "../lib/helpers.tsx";
 
 type Customer = {
   id: string;

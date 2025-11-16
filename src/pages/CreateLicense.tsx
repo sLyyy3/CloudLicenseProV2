@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { FaKey, FaSync, FaCheck, FaCopy } from "react-icons/fa";
 import { useDialog } from "../components/Dialog";
-import { generateLicenseKey } from "../utils/helpers.tsx";
+import { generateLicenseKey } from "../lib/helpers.tsx";
 
 export default function CreateLicense() {
   const { Dialog: DialogComponent, open: openDialog } = useDialog();

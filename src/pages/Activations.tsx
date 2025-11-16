@@ -13,7 +13,7 @@ import {
 } from "react-icons/fa";
 import Sidebar from "../components/Sidebar";
 import { useDialog } from "../components/Dialog";
-import { usePagination, exportToCSV } from "../utils/helpers.tsx";
+import { usePagination, exportToCSV } from "../lib/helpers.tsx";
 
 type Activation = {
   id: string;
