@@ -180,6 +180,7 @@ export default function Home() {
       delay: Math.random() * 10,
       duration: 15 + Math.random() * 20,
       bottom: Math.random() * 100,
+      moveX: (Math.random() - 0.5) * 100, // Random horizontal movement
     }));
   }, []); // Empty deps = calculate only ONCE!
 
@@ -199,6 +200,7 @@ export default function Home() {
               animationDelay: `${bubble.delay}s`,
               animationDuration: `${bubble.duration}s`,
               bottom: `-${bubble.bottom}px`,
+              ['--move-x' as any]: `${bubble.moveX}px`, // CSS Variable for horizontal movement
             }}
           />
         ))}
@@ -886,7 +888,7 @@ export default function Home() {
             opacity: 0.3;
           }
           100% {
-            transform: translateY(-100vh) translateX(${Math.random() > 0.5 ? '' : '-'}${20 + Math.random() * 40}px) rotate(360deg);
+            transform: translateY(-100vh) translateX(var(--move-x, 30px)) rotate(360deg);
             opacity: 0;
           }
         }
