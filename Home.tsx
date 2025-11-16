@@ -1,5 +1,5 @@
 // src/pages/Home.tsx - MEGA LANDING PAGE WITH FIXED BUBBLES
-import { useEffect, useState, useRef, useMemo, memo } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import {
@@ -22,23 +22,6 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
-
-// Bubble Component - Memoized to prevent re-renders!
-const FloatingBubble = memo(({ bubble }: { bubble: any }) => (
-  <div
-    className="bubble absolute rounded-full opacity-10"
-    style={{
-      left: `${bubble.left}%`,
-      width: `${bubble.size}px`,
-      height: `${bubble.size}px`,
-      background: `radial-gradient(circle, ${bubble.color}, transparent)`,
-      animationDelay: `${bubble.delay}s`,
-      animationDuration: `${bubble.duration}s`,
-      bottom: `-${bubble.bottom}px`,
-      ['--move-x' as any]: `${bubble.moveX}px`,
-    }}
-  />
-));
 
 // Animated Counter Hook
 function useAnimatedCounter(targetValue: number, duration: number = 2000) {
@@ -97,12 +80,51 @@ export default function Home() {
   const [selectedTab, setSelectedTab] = useState<"customer" | "developer" | "reseller">("customer");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const bubblesContainerRef = useRef<HTMLDivElement>(null);
 
   // Animated Counters
   const keysCounter = useAnimatedCounter(10247);
   const usersCounter = useAnimatedCounter(523);
   const revenueCounter = useAnimatedCounter(52340);
   const uptimeCounter = useAnimatedCounter(999);
+
+  // Create bubbles ONCE on mount - pure DOM manipulation (no React re-renders!)
+  useEffect(() => {
+    if (!bubblesContainerRef.current) return;
+
+    const container = bubblesContainerRef.current;
+    const bubbles = Array.from({ length: 30 }, (_, i) => {
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble absolute rounded-full opacity-10';
+
+      const left = Math.random() * 100;
+      const size = 20 + Math.random() * 80;
+      const color = i % 3 === 0 ? "#00FF9C" : i % 3 === 1 ? "#A855F7" : "#3B82F6";
+      const delay = Math.random() * 10;
+      const duration = 15 + Math.random() * 20;
+      const bottom = Math.random() * 100;
+      const moveX = (Math.random() - 0.5) * 100;
+
+      bubble.style.cssText = `
+        left: ${left}%;
+        width: ${size}px;
+        height: ${size}px;
+        background: radial-gradient(circle, ${color}, transparent);
+        animation-delay: ${delay}s;
+        animation-duration: ${duration}s;
+        bottom: -${bottom}px;
+        --move-x: ${moveX}px;
+      `;
+
+      container.appendChild(bubble);
+      return bubble;
+    });
+
+    // Cleanup on unmount
+    return () => {
+      bubbles.forEach(b => b.remove());
+    };
+  }, []); // Empty deps = only run ONCE!
 
   useEffect(() => {
     async function checkAuth() {
@@ -187,28 +209,10 @@ export default function Home() {
     },
   ];
 
-  // Generate bubble positions ONCE - not on every render!
-  const bubbles = useMemo(() => {
-    return [...Array(30)].map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      size: 20 + Math.random() * 80,
-      color: i % 3 === 0 ? "#00FF9C" : i % 3 === 1 ? "#A855F7" : "#3B82F6",
-      delay: Math.random() * 10,
-      duration: 15 + Math.random() * 20,
-      bottom: Math.random() * 100,
-      moveX: (Math.random() - 0.5) * 100, // Random horizontal movement
-    }));
-  }, []); // Empty deps = calculate only ONCE!
-
   return (
     <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0] relative overflow-hidden">
-      {/* FLOATING BUBBLES - CSS ONLY (No re-render!) */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {bubbles.map((bubble) => (
-          <FloatingBubble key={bubble.id} bubble={bubble} />
-        ))}
-      </div>
+      {/* FLOATING BUBBLES - Pure DOM (No React re-renders!) */}
+      <div ref={bubblesContainerRef} className="fixed inset-0 pointer-events-none z-0 overflow-hidden" />
 
       {/* BACKGROUND GRID */}
       <div
