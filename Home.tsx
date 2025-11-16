@@ -781,21 +781,21 @@ export default function Home() {
               </div>
 
               <div>
-                <h4 className="font-bold mb-4 text-white">Entwickler</h4>
+                <h4 className="font-bold mb-4 text-white">Reseller</h4>
                 <ul className="space-y-2 text-sm text-gray-400">
                   <li>
-                    <button onClick={() => navigate("/dev-register")} className="hover:text-[#00FF9C] transition">
+                    <button onClick={() => navigate("/reseller-register")} className="hover:text-[#00FF9C] transition">
                       Registrieren
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigate("/dev-docs")} className="hover:text-[#00FF9C] transition">
+                    <button onClick={() => navigate("/reseller-docs")} className="hover:text-[#00FF9C] transition">
                       API Docs
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigate("/dev-api-keys")} className="hover:text-[#00FF9C] transition">
-                      API Keys
+                    <button onClick={() => navigate("/reseller-dashboard")} className="hover:text-[#00FF9C] transition">
+                      Dashboard
                     </button>
                   </li>
                 </ul>
