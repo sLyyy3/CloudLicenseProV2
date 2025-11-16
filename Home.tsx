@@ -1,5 +1,5 @@
 // src/pages/Home.tsx - MEGA LANDING PAGE WITH FIXED BUBBLES
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import {
@@ -170,24 +170,35 @@ export default function Home() {
     },
   ];
 
+  // Generate bubble positions ONCE - not on every render!
+  const bubbles = useMemo(() => {
+    return [...Array(30)].map((_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      size: 20 + Math.random() * 80,
+      color: i % 3 === 0 ? "#00FF9C" : i % 3 === 1 ? "#A855F7" : "#3B82F6",
+      delay: Math.random() * 10,
+      duration: 15 + Math.random() * 20,
+      bottom: Math.random() * 100,
+    }));
+  }, []); // Empty deps = calculate only ONCE!
+
   return (
     <div className="min-h-screen bg-[#0E0E12] text-[#E0E0E0] relative overflow-hidden">
       {/* FLOATING BUBBLES - CSS ONLY (No re-render!) */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {[...Array(30)].map((_, i) => (
+        {bubbles.map((bubble) => (
           <div
-            key={i}
+            key={bubble.id}
             className="bubble absolute rounded-full opacity-10"
             style={{
-              left: `${Math.random() * 100}%`,
-              width: `${20 + Math.random() * 80}px`,
-              height: `${20 + Math.random() * 80}px`,
-              background: `radial-gradient(circle, ${
-                i % 3 === 0 ? "#00FF9C" : i % 3 === 1 ? "#A855F7" : "#3B82F6"
-              }, transparent)`,
-              animationDelay: `${Math.random() * 10}s`,
-              animationDuration: `${15 + Math.random() * 20}s`,
-              bottom: `-${Math.random() * 100}px`,
+              left: `${bubble.left}%`,
+              width: `${bubble.size}px`,
+              height: `${bubble.size}px`,
+              background: `radial-gradient(circle, ${bubble.color}, transparent)`,
+              animationDelay: `${bubble.delay}s`,
+              animationDuration: `${bubble.duration}s`,
+              bottom: `-${bubble.bottom}px`,
             }}
           />
         ))}
