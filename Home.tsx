@@ -77,7 +77,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<"customer" | "seller" | "reseller">("customer");
+  const [selectedTab, setSelectedTab] = useState<"customer" | "reseller">("customer");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const bubblesContainerRef = useRef<HTMLDivElement>(null);
@@ -146,8 +146,8 @@ export default function Home() {
   const testimonials = [
     {
       name: "MaxCheats",
-      role: "Game Tools Seller",
-      text: "CloudLicensePro hat mein Business revolutioniert! Früher hatte ich ständig Probleme mit Key-Management. Jetzt läuft alles automatisch.",
+      role: "Reseller",
+      text: "CloudLicensePro hat mein Business revolutioniert! Ich kaufe Keys auf ePVP und verkaufe sie hier - einfach, sicher, profitabel.",
       rating: 5,
       avatar: "👨‍💻",
     },
@@ -166,30 +166,30 @@ export default function Home() {
       avatar: "🎮",
     },
     {
-      name: "CodingNinja",
-      role: "Seller",
-      text: "Die API ist super einfach zu integrieren. In 10 Minuten hatte ich mein erstes Produkt live!",
+      name: "TrustPilot_User",
+      role: "Customer",
+      text: "Günstige Preise, schnelle Lieferung und die Keys funktionieren immer. Besser als alle anderen Plattformen!",
       rating: 5,
-      avatar: "🥷",
+      avatar: "⭐",
     },
   ];
 
   const faqs = [
     {
       q: "Was ist CloudLicensePro?",
-      a: "CloudLicensePro ist eine All-in-One Plattform für digitale Produkte. Du kannst Keys verkaufen, kaufen, validieren und als Reseller Geld verdienen.",
+      a: "CloudLicensePro ist ein sicherer Marketplace für Game Keys und digitale Produkte. Kunden kaufen günstig, Reseller verkaufen profitabel.",
     },
     {
       q: "Wie funktioniert das Reseller-System?",
-      a: "Als Reseller kaufst du Keys von anderen Sellern zu einem günstigeren Preis und verkaufst sie weiter. Du bestimmst deinen eigenen Preis und Gewinnmarge!",
+      a: "Als Reseller kaufst du Keys extern (ePVP, UnknownCheats, etc.), listest sie auf CloudLicensePro und verkaufst sie zu deinem Preis. Wir nehmen nur 5% Fee pro Verkauf.",
     },
     {
-      q: "Gibt es eine Lifetime License?",
-      a: "Ja! Alle Keys können als Lifetime-Lizenzen verkauft werden. Du entscheidest, ob deine Produkte zeitlich begrenzt oder unbegrenzt gültig sind.",
+      q: "Woher kommen die Keys?",
+      a: "Unsere Reseller kaufen Keys von etablierten Plattformen wie ePVP, UnknownCheats und anderen vertrauenswürdigen Quellen. Alle Keys werden validiert.",
     },
     {
       q: "Wie schnell erhalte ich meine Keys?",
-      a: "Sofort! Nach dem Kauf werden Keys automatisch generiert und dir per Email zugeschickt. Validierung funktioniert in Echtzeit.",
+      a: "Sofort! Nach dem Kauf erhältst du deine Keys automatisch per Email und im Dashboard. Validierung funktioniert in Echtzeit.",
     },
     {
       q: "Welche Zahlungsmethoden werden akzeptiert?",
@@ -200,12 +200,12 @@ export default function Home() {
       a: "Absolut! Wir nutzen Stripe und PayPal für sichere Zahlungsabwicklung. Deine Daten werden verschlüsselt übertragen.",
     },
     {
-      q: "Gibt es eine API für Entwickler?",
-      a: "Ja! Vollständige REST API mit Dokumentation. Du kannst Keys generieren, validieren und verwalten - alles programmgesteuert.",
+      q: "Was kostet CloudLicensePro?",
+      a: "Für Kunden: Kostenlos! Für Reseller: Nur 5% Fee pro Verkauf. Keine monatlichen Gebühren, keine versteckten Kosten.",
     },
     {
-      q: "Was kostet CloudLicensePro?",
-      a: "Für Kunden: Kostenlos! Für Seller: 5% Fee pro Verkauf. Für Reseller: Kostenlos + eigene Preise festlegen.",
+      q: "Kann ich als Kunde auch Reseller werden?",
+      a: "Ja! Jeder kann Reseller werden. Kaufe Keys günstig ein, liste sie bei uns und verkaufe sie mit deiner eigenen Marge weiter.",
     },
   ];
 
@@ -274,32 +274,34 @@ export default function Home() {
         <div className="pt-32 pb-20 px-8">
           <div className="max-w-7xl mx-auto text-center">
             <div className="inline-block mb-4 px-4 py-2 bg-[#00FF9C]/10 border border-[#00FF9C]/30 rounded-full text-[#00FF9C] text-sm font-bold animate-pulse">
-              🔥 Der Marketplace für Game Keys & Digital Products
+              🔥 Der sichere Marketplace für Game Keys
             </div>
 
-            <h1 className="text-7xl md:text-8xl font-black mb-6 bg-gradient-to-r from-[#00FF9C] via-purple-400 to-blue-400 bg-clip-text text-transparent leading-tight">
-              Verkaufe Keys.
+            <h1 className="text-6xl md:text-8xl font-black mb-6 bg-gradient-to-r from-[#00FF9C] via-purple-400 to-blue-400 bg-clip-text text-transparent leading-tight">
+              Kaufe günstig.
               <br />
-              Verdiene Geld.
+              Verkaufe profitabel.
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto mb-8">
-              Kaufe Keys auf ePVP, UnknownCheats & Co. - verkaufe sie auf CloudLicensePro.
+            <p className="text-xl md:text-2xl text-gray-400 max-w-4xl mx-auto mb-12">
+              <span className="text-white font-bold">Für Kunden:</span> Günstige Game Keys von verifizierten Resellern.
+              <br />
+              <span className="text-white font-bold">Für Reseller:</span> Kaufe extern (ePVP, UC), verkaufe hier.
               <span className="text-[#00FF9C] font-bold"> Nur 5% Fee.</span>
             </p>
 
             <div className="flex gap-4 justify-center flex-wrap mb-12">
               <button
-                onClick={() => navigate("/dev-register")}
+                onClick={() => navigate("/shop")}
                 className="px-8 py-4 bg-[#00FF9C] text-[#0E0E12] rounded-lg font-bold text-lg hover:bg-[#00cc80] transition hover:scale-105 flex items-center gap-2 shadow-lg shadow-[#00FF9C]/20"
               >
-                Jetzt Seller werden <FaArrowRight />
+                <FaShoppingCart /> Keys kaufen
               </button>
               <button
-                onClick={() => navigate("/shop")}
-                className="px-8 py-4 bg-[#1A1A1F] border border-[#2C2C34] text-white rounded-lg font-bold text-lg hover:border-[#00FF9C] transition hover:scale-105 flex items-center gap-2"
+                onClick={() => navigate("/reseller-register")}
+                className="px-8 py-4 bg-[#1A1A1F] border-2 border-[#00FF9C] text-white rounded-lg font-bold text-lg hover:bg-[#00FF9C] hover:text-black transition hover:scale-105 flex items-center gap-2"
               >
-                Shop ansehen <FaShoppingCart />
+                <FaRocket /> Reseller werden
               </button>
             </div>
 
@@ -342,7 +344,7 @@ export default function Home() {
                 <div className="text-5xl font-bold text-purple-400 mb-2">
                   {usersCounter.count}+
                 </div>
-                <p className="text-gray-400">Sellers & Reseller</p>
+                <p className="text-gray-400">Aktive Reseller</p>
               </div>
 
               {/* Revenue */}
@@ -421,8 +423,7 @@ export default function Home() {
             <div className="flex justify-center gap-4 mb-12 flex-wrap">
               {[
                 { id: "customer", label: "👤 Kunde", color: "bg-[#00FF9C]" },
-                { id: "seller", label: "💰 Seller", color: "bg-purple-500" },
-                { id: "reseller", label: "💼 Reseller", color: "bg-blue-500" },
+                { id: "reseller", label: "💼 Reseller", color: "bg-purple-500" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -472,13 +473,13 @@ export default function Home() {
                 </div>
               )}
 
-              {selectedTab === "seller" && (
+              {selectedTab === "reseller" && (
                 <div>
                   <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    💰 Als Seller
+                    💼 Als Reseller
                   </h3>
                   <p className="text-gray-400 mb-6 text-lg">
-                    Du kaufst Keys extern (ePVP, UnknownCheats, etc.) und verkaufst sie hier weiter.
+                    Kaufe Keys extern (ePVP, UnknownCheats, etc.), liste sie auf CloudLicensePro und verkaufe sie profitabel.
                   </p>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-3 text-lg">
@@ -487,55 +488,24 @@ export default function Home() {
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Eigene Preise festlegen</span>
+                      <span>100% deiner Marge behalten</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Reseller können für dich verkaufen</span>
+                      <span>Eigene Preise festlegen</span>
                     </li>
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
                       <span>Nur 5% Fee pro Verkauf</span>
                     </li>
-                  </ul>
-                  <button
-                    onClick={() => navigate("/dev-register")}
-                    className="w-full py-3 bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 transition"
-                  >
-                    Seller werden →
-                  </button>
-                </div>
-              )}
-
-              {selectedTab === "reseller" && (
-                <div>
-                  <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    💼 Als Reseller
-                  </h3>
-                  <p className="text-gray-400 mb-6 text-lg">
-                    Du kaufst Keys von Sellern günstiger und verkaufst sie mit deiner eigenen Marge weiter.
-                  </p>
-                  <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-3 text-lg">
                       <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Von Sellern günstig einkaufen</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-lg">
-                      <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Eigene Verkaufspreise bestimmen</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-lg">
-                      <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>Inventory Management Dashboard</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-lg">
-                      <FaCheckCircle className="text-green-400 flex-shrink-0" />
-                      <span>100% deiner Marge behalten</span>
+                      <span>Live Analytics Dashboard</span>
                     </li>
                   </ul>
                   <button
                     onClick={() => navigate("/reseller-register")}
-                    className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition"
+                    className="w-full py-3 bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 transition"
                   >
                     Reseller werden →
                   </button>
@@ -604,13 +574,13 @@ export default function Home() {
               Keine versteckten Gebühren. Nur fair.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {/* Customer */}
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-8 hover:border-[#00FF9C] transition">
-                <div className="text-4xl mb-4">👤</div>
-                <h3 className="text-2xl font-bold mb-2">Kunde</h3>
-                <div className="text-4xl font-bold mb-4 text-[#00FF9C]">Kostenlos</div>
-                <p className="text-gray-400 mb-6">Kaufe Keys und spare mit Bundles</p>
+              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-8 hover:border-[#00FF9C] transition hover:scale-105">
+                <div className="text-5xl mb-4 text-center">👤</div>
+                <h3 className="text-3xl font-bold mb-2 text-center">Kunde</h3>
+                <div className="text-5xl font-bold mb-4 text-[#00FF9C] text-center">Kostenlos</div>
+                <p className="text-gray-400 mb-6 text-center">Kaufe günstige Keys von verifizierten Resellern</p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
@@ -618,30 +588,34 @@ export default function Home() {
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Bundle Discounts</span>
+                    <span className="text-sm">Bundle Discounts bis 32%</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
                     <span className="text-sm">Key Validation</span>
                   </li>
+                  <li className="flex items-center gap-2">
+                    <FaCheck className="text-green-400" />
+                    <span className="text-sm">Sichere Zahlung</span>
+                  </li>
                 </ul>
                 <button
                   onClick={() => navigate("/shop")}
-                  className="w-full py-3 bg-[#2C2C34] rounded-lg font-bold hover:bg-[#3C3C44] transition"
+                  className="w-full py-3 bg-[#00FF9C] text-black rounded-lg font-bold hover:bg-[#00cc80] transition"
                 >
                   Zum Shop
                 </button>
               </div>
 
-              {/* Seller - MOST POPULAR */}
+              {/* Reseller - MOST POPULAR */}
               <div className="bg-[#1A1A1F] border-2 border-[#00FF9C] rounded-lg p-8 relative hover:scale-105 transition">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#00FF9C] text-black text-xs font-bold rounded-full">
-                  MOST POPULAR
+                  VERDIENE GELD
                 </div>
-                <div className="text-4xl mb-4">💰</div>
-                <h3 className="text-2xl font-bold mb-2">Seller</h3>
-                <div className="text-4xl font-bold mb-4 text-[#00FF9C]">5% Fee</div>
-                <p className="text-gray-400 mb-6">Keys extern kaufen, hier verkaufen</p>
+                <div className="text-5xl mb-4 text-center">💼</div>
+                <h3 className="text-3xl font-bold mb-2 text-center">Reseller</h3>
+                <div className="text-5xl font-bold mb-4 text-[#00FF9C] text-center">5% Fee</div>
+                <p className="text-gray-400 mb-6 text-center">Kaufe extern, verkaufe profitabel</p>
                 <ul className="space-y-3 mb-6">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
@@ -649,7 +623,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
-                    <span className="text-sm">Reseller für dich verkaufen</span>
+                    <span className="text-sm">100% deiner Marge behalten</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400" />
@@ -661,36 +635,8 @@ export default function Home() {
                   </li>
                 </ul>
                 <button
-                  onClick={() => navigate("/dev-register")}
-                  className="w-full py-3 bg-[#00FF9C] text-black rounded-lg font-bold hover:bg-[#00cc80] transition"
-                >
-                  Seller werden
-                </button>
-              </div>
-
-              {/* Reseller */}
-              <div className="bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-8 hover:border-blue-400 transition">
-                <div className="text-4xl mb-4">💼</div>
-                <h3 className="text-2xl font-bold mb-2">Reseller</h3>
-                <div className="text-4xl font-bold mb-4 text-[#00FF9C]">Kostenlos</div>
-                <p className="text-gray-400 mb-6">Von Sellern kaufen, mit Marge weiterverkaufen</p>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2">
-                    <FaCheck className="text-green-400" />
-                    <span className="text-sm">Von Sellern günstig kaufen</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <FaCheck className="text-green-400" />
-                    <span className="text-sm">100% Marge behalten</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <FaCheck className="text-green-400" />
-                    <span className="text-sm">Inventory Management</span>
-                  </li>
-                </ul>
-                <button
                   onClick={() => navigate("/reseller-register")}
-                  className="w-full py-3 bg-[#2C2C34] rounded-lg font-bold hover:bg-[#3C3C44] transition"
+                  className="w-full py-3 bg-[#00FF9C] text-black rounded-lg font-bold hover:bg-[#00cc80] transition"
                 >
                   Reseller werden
                 </button>
