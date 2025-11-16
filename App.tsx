@@ -227,13 +227,13 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* ===== DEVELOPER AUTH ROUTES ===== */}
-        <Route path="/dev-register" element={<DeveloperRegister />} />
-        <Route path="/dev-login" element={<DeveloperLogin />} />
+        {/* ===== RESELLER AUTH ROUTES ===== */}
+        <Route path="/reseller-register" element={<DeveloperRegister />} />
+        <Route path="/reseller-login" element={<DeveloperLogin />} />
 
-        {/* ===== DEVELOPER PROTECTED ROUTES ===== */}
+        {/* ===== RESELLER PROTECTED ROUTES ===== */}
         <Route
-          path="/dev-dashboard"
+          path="/reseller-dashboard"
           element={
             <ProtectedRoute>
               <DeveloperDashboard />
@@ -241,7 +241,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dev-products"
+          path="/reseller-products"
           element={
             <ProtectedRoute>
               <DeveloperProducts />
@@ -249,7 +249,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dev-licenses"
+          path="/reseller-licenses"
           element={
             <ProtectedRoute>
               <DeveloperLicenses />
@@ -257,7 +257,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dev-customers"
+          path="/reseller-customers"
           element={
             <ProtectedRoute>
               <DeveloperCustomers />
@@ -265,7 +265,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dev-analytics"
+          path="/reseller-analytics"
           element={
             <ProtectedRoute>
               <DeveloperAnalytics />
@@ -273,15 +273,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dev-resellers"
-          element={
-            <ProtectedRoute>
-              <DeveloperResellers />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dev-api-keys"
+          path="/reseller-api-keys"
           element={
             <ProtectedRoute>
               <DeveloperAPIKeys />
@@ -289,7 +281,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dev-billing"
+          path="/reseller-billing"
           element={
             <ProtectedRoute>
               <DeveloperBilling />
@@ -297,7 +289,7 @@ export default function App() {
           }
         />
         <Route
-          path="/dev-docs"
+          path="/reseller-docs"
           element={
             <ProtectedRoute>
               <DeveloperDocs />
@@ -305,59 +297,7 @@ export default function App() {
           }
         />
 
-        {/* ===== RESELLER AUTH ROUTES ===== */}
-        <Route path="/reseller-register" element={<ResellerRegister />} />
-        <Route path="/reseller-login" element={<ResellerLogin />} />
-
-        {/* ===== RESELLER PROTECTED ROUTES ===== */}
-        <Route
-          path="/reseller-dashboard"
-          element={
-            <ProtectedRoute>
-              <ResellerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reseller-marketplace"
-          element={
-            <ProtectedRoute>
-              <ResellerMarketplace />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reseller-inventory"
-          element={
-            <ProtectedRoute>
-              <ResellerInventory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reseller-sales"
-          element={
-            <ProtectedRoute>
-              <ResellerSales />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reseller-developers"
-          element={
-            <ProtectedRoute>
-              <ResellerDevelopers />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reseller-analytics"
-          element={
-            <ProtectedRoute>
-              <ResellerAnalytics />
-            </ProtectedRoute>
-          }
-        />
+        {/* ===== OLD RESELLER ROUTES REMOVED - Using Developer Components now ===== */}
 
         {/* ===== REFERRAL ROUTE (PUBLIC) ===== */}
         <Route
