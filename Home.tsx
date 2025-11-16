@@ -77,7 +77,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<"customer" | "developer" | "reseller">("customer");
+  const [selectedTab, setSelectedTab] = useState<"customer" | "vendor" | "reseller">("customer");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const bubblesContainerRef = useRef<HTMLDivElement>(null);
@@ -146,7 +146,7 @@ export default function Home() {
   const testimonials = [
     {
       name: "MaxCheats",
-      role: "Game Tools Developer",
+      role: "Game Tools Vendor",
       text: "CloudLicensePro hat mein Business revolutioniert! Früher hatte ich ständig Probleme mit Key-Management. Jetzt läuft alles automatisch.",
       rating: 5,
       avatar: "👨‍💻",
@@ -167,7 +167,7 @@ export default function Home() {
     },
     {
       name: "CodingNinja",
-      role: "Developer",
+      role: "Vendor",
       text: "Die API ist super einfach zu integrieren. In 10 Minuten hatte ich mein erstes Produkt live!",
       rating: 5,
       avatar: "🥷",
@@ -181,7 +181,7 @@ export default function Home() {
     },
     {
       q: "Wie funktioniert das Reseller-System?",
-      a: "Als Reseller kaufst du Keys von Developern zu einem günstigeren Preis und verkaufst sie weiter. Du bestimmst deinen eigenen Preis und Gewinnmarge!",
+      a: "Als Reseller kaufst du Keys von Vendors zu einem günstigeren Preis und verkaufst sie weiter. Du bestimmst deinen eigenen Preis und Gewinnmarge!",
     },
     {
       q: "Gibt es eine Lifetime License?",
@@ -205,7 +205,7 @@ export default function Home() {
     },
     {
       q: "Was kostet CloudLicensePro?",
-      a: "Für Kunden: Kostenlos! Für Developer: 5% Fee pro Verkauf. Für Reseller: Kostenlos + eigene Preise festlegen.",
+      a: "Für Kunden: Kostenlos! Für Vendors: 5% Fee pro Verkauf. Für Reseller: Kostenlos + eigene Preise festlegen.",
     },
   ];
 
@@ -342,7 +342,7 @@ export default function Home() {
                 <div className="text-5xl font-bold text-purple-400 mb-2">
                   {usersCounter.count}+
                 </div>
-                <p className="text-gray-400">Developer & Reseller</p>
+                <p className="text-gray-400">Vendors & Reseller</p>
               </div>
 
               {/* Revenue */}
@@ -421,7 +421,7 @@ export default function Home() {
             <div className="flex justify-center gap-4 mb-12 flex-wrap">
               {[
                 { id: "customer", label: "👤 Kunde", color: "bg-[#00FF9C]" },
-                { id: "developer", label: "👨‍💻 Developer", color: "bg-purple-500" },
+                { id: "vendor", label: "👨‍💻 Vendor", color: "bg-purple-500" },
                 { id: "reseller", label: "💼 Reseller", color: "bg-blue-500" },
               ].map((tab) => (
                 <button
@@ -472,10 +472,10 @@ export default function Home() {
                 </div>
               )}
 
-              {selectedTab === "developer" && (
+              {selectedTab === "vendor" && (
                 <div>
                   <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    👨‍💻 Als Developer
+                    👨‍💻 Als Vendor
                   </h3>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-3 text-lg">
@@ -499,7 +499,7 @@ export default function Home() {
                     onClick={() => navigate("/dev-register")}
                     className="w-full py-3 bg-purple-600 text-white rounded-lg font-bold text-lg hover:bg-purple-700 transition"
                   >
-                    Developer werden →
+                    Vendor werden →
                   </button>
                 </div>
               )}
@@ -627,13 +627,13 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Developer - MOST POPULAR */}
+              {/* Vendor - MOST POPULAR */}
               <div className="bg-[#1A1A1F] border-2 border-[#00FF9C] rounded-lg p-8 relative hover:scale-105 transition">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#00FF9C] text-black text-xs font-bold rounded-full">
                   MOST POPULAR
                 </div>
                 <div className="text-4xl mb-4">👨‍💻</div>
-                <h3 className="text-2xl font-bold mb-2">Developer</h3>
+                <h3 className="text-2xl font-bold mb-2">Vendor</h3>
                 <div className="text-4xl font-bold mb-4 text-[#00FF9C]">5% Fee</div>
                 <p className="text-gray-400 mb-6">Pro Verkauf - keine monatlichen Kosten</p>
                 <ul className="space-y-3 mb-6">
@@ -658,7 +658,7 @@ export default function Home() {
                   onClick={() => navigate("/dev-register")}
                   className="w-full py-3 bg-[#00FF9C] text-black rounded-lg font-bold hover:bg-[#00cc80] transition"
                 >
-                  Developer werden
+                  Vendor werden
                 </button>
               </div>
 
