@@ -389,12 +389,12 @@ export default function Home() {
               ].map((feature, idx) => (
                 <div
                   key={idx}
-                  className="relative group bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-[#00FF9C] transition hover:scale-105 hover:-translate-y-1"
+                  className="relative group bg-[#1A1A1F] border border-[#2C2C34] rounded-lg p-6 hover:border-[#00FF9C] transition hover:scale-105 hover:-translate-y-1 text-center"
                 >
                   <div className="absolute top-4 right-4 text-xs px-2 py-1 bg-[#00FF9C]/10 text-[#00FF9C] rounded-full font-bold">
                     {feature.badge}
                   </div>
-                  <div className={`text-4xl mb-4 ${feature.color} group-hover:scale-110 transition`}>
+                  <div className={`text-4xl mb-4 ${feature.color} group-hover:scale-110 transition flex justify-center`}>
                     {feature.icon}
                   </div>
                   <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
